@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>KI-Prüfungstrainer</title><meta name="apple-mobile-web-app-title" content="KI-Prüfungstrainer">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Literata:opsz,wght@7..72,400;7..72,600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#E6ECF2; --surface:#FFFFFF; --ink:#18283A; --muted:#55677A; --line:#C9D4E0;
+  --ruled:#C7DAEE; --red:#C8313E; --easy:#2E7D5B; --mid:#A86A12; --hard:#A23B4A;
+  --accent:#24507F; --accent-ink:#FFFFFF; --ok-bg:#E3F2EA; --bad-bg:#F8E4E6;
+  box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#10161D; --surface:#1A2330; --ink:#E4ECF4; --muted:#93A4B6; --line:#2C3A4B;
+  --ruled:#24364A; --red:#E0596A; --easy:#5DBB8E; --mid:#D9A04A; --hard:#E07887;
+  --accent:#7FAFE0; --accent-ink:#0E1620; --ok-bg:#183126; --bad-bg:#3A1E24; color-scheme:dark;}}
+:root[data-theme="dark"]{
+  --bg:#10161D; --surface:#1A2330; --ink:#E4ECF4; --muted:#93A4B6; --line:#2C3A4B;
+  --ruled:#24364A; --red:#E0596A; --easy:#5DBB8E; --mid:#D9A04A; --hard:#E07887;
+  --accent:#7FAFE0; --accent-ink:#0E1620; --ok-bg:#183126; --bad-bg:#3A1E24; color-scheme:dark;}
+*,*::before,*::after{box-sizing:inherit}
+html{height:100%;scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;min-height:100%;background:var(--bg);color:var(--ink);
+  font-family:"Atkinson Hyperlegible",system-ui,-apple-system,"Segoe UI",sans-serif;font-size:17px;line-height:1.45;-webkit-tap-highlight-color:transparent}
+button,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.wrap{max-width:1180px;margin:0 auto;padding:16px 20px 40px}
+header{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:18px}
+h1{font-family:Literata,Georgia,serif;font-weight:600;font-size:1.45rem;margin:0;letter-spacing:-.01em}
+.sub{color:var(--muted);font-size:.9rem;margin-top:2px}
+nav{display:flex;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:4px}
+nav button{border:0;background:none;padding:10px 18px;border-radius:9px;font-weight:700;color:var(--muted);min-height:44px}
+nav button[aria-selected="true"]{background:var(--accent);color:var(--accent-ink)}
+.sync{font-size:.8rem;color:var(--muted);display:flex;align-items:center;gap:6px}
+.sync i{width:8px;height:8px;border-radius:50%;background:var(--muted);display:inline-block}
+.sync.cloud i{background:var(--easy)} .sync.error i{background:var(--hard)}
+.layout{display:grid;grid-template-columns:290px 1fr;gap:24px;align-items:start}
+@media (max-width:820px){.layout{grid-template-columns:1fr}}
+aside{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:10px}
+.topic{display:flex;width:100%;text-align:left;border:0;background:none;padding:10px 10px;border-radius:9px;gap:10px;align-items:center;min-height:44px}
+.topic:hover{background:var(--bg)}
+.topic[aria-pressed="true"]{background:var(--bg);box-shadow:inset 3px 0 0 var(--red)}
+.topic span:first-child{flex:1}
+.topic small{color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
+@media (max-width:820px){aside{display:flex;overflow-x:auto;gap:4px;padding:6px}.topic{width:auto;flex:0 0 auto;white-space:nowrap}.topic small{display:none}}
+.levels{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.chip{border:1.5px solid var(--line);background:var(--surface);border-radius:999px;padding:8px 16px;min-height:44px;display:inline-flex;align-items:center;gap:8px;font-weight:700}
+.chip[aria-pressed="true"]{border-color:var(--ink)}
+.dot{width:10px;height:10px;border-radius:50%;display:inline-block;flex:none}
+.l1{background:var(--easy)} .l2{background:var(--mid)} .l3{background:var(--hard)} .l0{background:var(--muted)}
+.meta{display:flex;justify-content:space-between;align-items:center;color:var(--muted);font-size:.9rem;margin-bottom:10px;gap:10px;flex-wrap:wrap}
+/* The index card */
+.stage{perspective:1600px}
+.card{position:relative;width:100%;min-height:380px;transition:transform .55s cubic-bezier(.3,.7,.2,1);transform-style:preserve-3d;cursor:pointer;border:0;padding:0;background:none;text-align:left;display:block}
+.card.flipped{transform:rotateY(180deg)}
+.face{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;background:var(--surface);border-radius:6px;
+  box-shadow:0 1px 0 var(--line),0 10px 28px -14px rgba(24,40,58,.35);overflow:hidden;display:flex;flex-direction:column}
+.face::before{content:"";display:block;height:0;border-top:2px solid var(--red);margin-top:58px}
+.back{transform:rotateY(180deg)}
+.back .ruled{background-image:repeating-linear-gradient(to bottom,transparent 0,transparent 33px,var(--ruled) 33px,var(--ruled) 34px)}
+.face .top{position:absolute;top:0;left:0;right:0;height:58px;display:flex;align-items:center;justify-content:space-between;padding:0 24px;color:var(--muted);font-size:.85rem}
+.face .body{flex:1;padding:22px 28px 22px;overflow:auto}
+.qtext{font-family:Literata,Georgia,serif;font-size:clamp(1.3rem,2.6vw,1.75rem);line-height:1.4;font-weight:600;max-width:34ch}
+.atext{font-family:Literata,Georgia,serif;font-size:1.08rem;line-height:34px;max-width:62ch}
+.hint{color:var(--muted);font-size:.85rem;padding:0 28px 18px}
+.srcs{margin-top:18px;font-size:.92rem;line-height:1.45}
+.srcs h3{font-size:.9rem;margin:0 0 6px;color:var(--muted);font-weight:700}
+.srcs a{color:var(--accent);text-decoration:underline;text-underline-offset:2px}
+.srcs li{margin-bottom:6px}
+.srcs ul{padding-left:18px;margin:0}
+.srcs .k{color:var(--muted)}
+.pips{display:inline-flex;gap:3px}
+.pips b{width:14px;height:5px;border-radius:2px;background:var(--line)}
+.pips b.on{background:var(--easy)}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:18px}
+.btn{border:1.5px solid var(--line);background:var(--surface);border-radius:12px;padding:14px 18px;font-weight:700;min-height:52px}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn.good{border-color:var(--easy);color:var(--easy)} .btn.bad{border-color:var(--hard);color:var(--hard)}
+.btn:disabled{opacity:.4;cursor:default}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:22px}
+label.f{display:block;font-weight:700;margin:0 0 6px}
+select{width:100%;padding:12px;border-radius:10px;border:1.5px solid var(--line);background:var(--surface);min-height:48px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+@media (max-width:820px){.grid3{grid-template-columns:1fr}}
+.opt{display:block;width:100%;text-align:left;border:1.5px solid var(--line);background:var(--surface);border-radius:12px;padding:14px 16px;margin-bottom:10px;min-height:52px;font-size:1.02rem}
+.opt.right{border-color:var(--easy);background:var(--ok-bg)} .opt.wrong{border-color:var(--hard);background:var(--bad-bg)}
+.opt:disabled{cursor:default;color:var(--ink)}
+.explain{border-left:3px solid var(--red);padding:6px 0 6px 14px;margin:14px 0;font-family:Literata,Georgia,serif}
+.bar{height:8px;background:var(--line);border-radius:4px;overflow:hidden}
+.bar>i{display:block;height:100%}
+table{width:100%;border-collapse:collapse}
+th,td{text-align:left;padding:10px 8px;border-bottom:1px solid var(--line);vertical-align:middle}
+th{font-size:.85rem;color:var(--muted);font-weight:700}
+td.n{font-variant-numeric:tabular-nums;white-space:nowrap}
+.tablewrap{overflow-x:auto}
+.score{font-family:Literata,Georgia,serif;font-size:3rem;font-weight:600;line-height:1}
+.empty{color:var(--muted);padding:20px 0}
+h2{font-family:Literata,Georgia,serif;font-size:1.25rem;margin:0 0 14px;font-weight:600}
+.note{font-size:.85rem;color:var(--muted);margin-top:24px;max-width:75ch}
+@media (prefers-reduced-motion:reduce){.card{transition:none}}
+.setup p,.steps p,.steps ul li{max-width:75ch}
+.steps{list-style:none;counter-reset:st;padding:0;margin:20px 0}
+.steps>li{counter-increment:st;margin-bottom:16px;position:relative;padding-left:64px}
+.steps>li::before{content:counter(st);position:absolute;left:20px;top:20px;width:30px;height:30px;border-radius:50%;background:var(--accent);color:var(--accent-ink);display:flex;align-items:center;justify-content:center;font-weight:700}
+.steps.inner{margin:16px 0 8px}.steps.inner>li{padding:4px 0 8px 48px;margin-bottom:14px}.steps.inner>li::before{left:0;top:0}
+#sbDetails[open] summary{margin-bottom:4px}#sbDetails .steps>li{box-shadow:none}
+ul.plain{padding-left:18px;margin:8px 0}ul.plain li{margin-bottom:8px;max-width:75ch}
+.steps h3{margin:2px 0 10px;font-family:Literata,Georgia,serif;font-size:1.1rem;font-weight:600}
+.steps ul{padding-left:18px;margin:8px 0}.steps ul li{margin-bottom:6px}
+.steps a,.faq a{color:var(--accent)}
+code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.88em;background:var(--bg);padding:1px 5px;border-radius:4px}
+.codewrap{position:relative;margin:10px 0}
+.codewrap pre{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:14px;overflow-x:auto;font-size:.8rem;line-height:1.5;margin:0;white-space:pre}
+.codewrap .copy{position:absolute;top:8px;right:8px;padding:6px 12px;min-height:36px;font-size:.85rem}
+.warn{border-left:3px solid var(--hard);padding-left:12px}
+.statusbox{border:1.5px solid var(--line);border-radius:12px;padding:12px 14px;margin-top:12px}
+.statusbox div{display:flex;gap:10px;align-items:center;padding:3px 0}
+.faq dt{font-weight:700;margin-top:12px}.faq dd{margin:4px 0 0;color:var(--muted);max-width:75ch}
+@media (max-width:820px){.steps>li{padding-left:22px;padding-top:58px}.steps>li::before{top:18px}.steps.inner>li{padding:44px 0 8px 0}.steps.inner>li::before{top:0;left:0}}
+@media (max-width:560px){nav{width:100%;flex-wrap:nowrap}nav button{flex:1;padding:10px 4px;font-size:.92rem}}
+.sync{text-align:left}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div>
+    <h1>KI-Prüfungstrainer</h1>
+    <div class="sub">Digitalisierungsmanager KI: Lernkarten und Quiz zu deinem Portfolio</div>
+  </div>
+  <nav role="tablist">
+    <button role="tab" data-view="learn" aria-selected="true">Lernkarten</button>
+    <button role="tab" data-view="quiz" aria-selected="false">Quiz</button>
+    <button role="tab" data-view="stats" aria-selected="false">Fortschritt</button>
+    <button role="tab" data-view="setup" aria-selected="false">Setup</button>
+  </nav>
+  <button class="sync" id="sync" style="border:0;background:none;padding:6px 0;min-height:44px"><i></i><span>Verbinde mit deinem Konto …</span></button>
+</header>
+
+<section id="v-learn">
+  <div class="layout">
+    <aside id="topics"></aside>
+    <div>
+      <div class="levels" id="levels"></div>
+      <div class="meta"><span id="lcount"></span><span id="lbox"></span></div>
+      <div class="stage">
+        <div class="card" id="card" role="button" tabindex="0" aria-label="Karte umdrehen">
+          <div class="face front"><div class="top"><span id="ftopic"></span><span id="flevel"></span></div>
+            <div class="body"><div class="qtext" id="fq"></div></div>
+            <div class="hint">Tippen zum Umdrehen</div></div>
+          <div class="face back"><div class="top"><span>Antwort</span><span id="blevel"></span></div>
+            <div class="body ruled"><div class="atext" id="ba"></div><div class="srcs" id="bs"></div></div></div>
+        </div>
+      </div>
+      <div class="actions">
+        <button class="btn bad" id="bNo" disabled>Nicht gewusst</button>
+        <button class="btn good" id="bYes" disabled>Gewusst</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="v-quiz" hidden>
+  <div id="qsetup" class="panel">
+    <h2>Quiz zusammenstellen</h2>
+    <div class="grid3">
+      <div><label class="f" for="qt">Thema</label><select id="qt"></select></div>
+      <div><label class="f" for="ql">Schwierigkeit</label><select id="ql">
+        <option value="0">Alle Stufen</option><option value="1">Einfach</option><option value="2">Mittel</option><option value="3">Schwer</option></select></div>
+      <div><label class="f" for="qn">Anzahl Fragen</label><select id="qn">
+        <option>5</option><option selected>10</option><option>20</option><option value="999">Alle passenden</option></select></div>
+    </div>
+    <div class="row" style="margin-top:18px"><button class="btn primary" id="qstart">Quiz starten</button><span class="sub" id="qavail"></span></div>
+  </div>
+  <div id="qrun" class="panel" hidden>
+    <div class="meta"><span id="qprog"></span><span id="qmeta"></span></div>
+    <div class="qtext" id="qq" style="margin-bottom:18px;max-width:none"></div>
+    <div id="qopts"></div>
+    <div id="qexp" hidden></div>
+    <div class="row" style="justify-content:space-between;margin-top:10px">
+      <button class="btn" id="qquit">Quiz abbrechen</button>
+      <button class="btn primary" id="qnext" hidden>Weiter</button>
+    </div>
+  </div>
+  <div id="qend" class="panel" hidden></div>
+</section>
+
+<section id="v-stats" hidden>
+  <div class="panel" style="margin-bottom:20px">
+    <h2>Lernkarten nach Thema</h2>
+    <p class="sub" style="margin-top:-6px">Eine Karte gilt als sicher, wenn du sie dreimal in Folge gewusst hast.</p>
+    <div class="tablewrap"><table id="stTable"></table></div>
+  </div>
+  <div class="panel">
+    <h2>Quiz-Verlauf</h2>
+    <div class="tablewrap" id="stHist"></div>
+    <div class="row" style="margin-top:18px"><button class="btn bad" id="reset">Fortschritt zurücksetzen</button></div>
+  </div>
+  <div class="panel" style="margin-top:20px">
+    <h2>Speicherung und Sicherung</h2>
+    <p class="sub" id="syncDetail" style="margin-top:-6px"></p>
+    <div id="acct" hidden style="margin:6px 0 18px">
+      <div id="gistIn" hidden><div class="row"><span id="gistWho" class="sub"></span><a id="gistLink" href="#" target="_blank" rel="noopener" style="color:var(--accent)">Gist ansehen</a></div>
+        <p class="sub" style="margin:6px 0 0">Verwalten im Reiter <a href="#" class="toSetup" style="color:var(--accent)">Setup</a>.</p></div>
+      <p class="sub" id="acctSetupHint" hidden>Die Synchronisierung zwischen Geräten ist noch nicht eingerichtet. Die Anleitung findest du im Reiter <a href="#" class="toSetup" style="color:var(--accent)">Setup</a>.</p>
+      <p class="sub" id="acctMsg"></p>
+    </div>
+    <p class="sub">Zusätzliche Sicherung: Erzeuge einen Sicherungscode, kopiere ihn (z. B. in Notizen) und spiele ihn bei Bedarf wieder ein.</p>
+    <div class="row"><button class="btn" id="expBtn">Sicherungscode erzeugen</button><button class="btn" id="impBtn">Sicherungscode einspielen</button></div>
+    <textarea id="bk" rows="4" style="width:100%;margin-top:12px;border:1.5px solid var(--line);border-radius:10px;padding:10px;background:var(--surface);color:var(--ink);font:inherit;font-size:.8rem" placeholder="Hier erscheint der Code bzw. hier einfügen" hidden></textarea>
+    <p class="sub" id="bkMsg"></p>
+  </div>
+  <p class="note">Die Karten basieren auf den Themen deines Portfolio-Zertifikats und Prompt-Engineering-Nachweises, nicht auf dem offiziellen Prüfungskatalog. Quellen-Links und Lesezeiten sind Richtwerte – bitte vor dem Lernen kurz prüfen. Video-Links öffnen eine YouTube-Suche, gefiltert auf Videos unter 4 Minuten.</p>
+</section>
+
+<section id="v-setup" hidden>
+  <div class="panel setup">
+    <h2>Lernstand zwischen Geräten synchronisieren</h2>
+    <p>Ohne Einrichtung speichert der Trainer nur in diesem Browser. Mit einem GitHub-Gist wird dein Lernstand in deinem GitHub-Konto abgelegt und zwischen iPad und Rechner abgeglichen. Du brauchst nur ein GitHub-Konto; die Einrichtung dauert etwa drei Minuten.</p>
+    <p class="sub" id="setupClaude" hidden>Du nutzt den Trainer gerade über Claude. Hier wird automatisch im Claude-Konto gespeichert; diese Einrichtung brauchst du nur für die Version auf GitHub Pages oder einer anderen Adresse.</p>
+    <div class="statusbox" id="gistStatus"></div>
+  </div>
+
+  <div class="panel" style="margin-top:16px">
+    <h2>So funktioniert es</h2>
+    <ul class="plain">
+      <li><b>Gist:</b> Ein Gist ist eine kleine Datei in deinem GitHub-Konto. Der Trainer legt dort die Datei <code>ki-pruefungstrainer.json</code> als „Secret Gist“ an – sie erscheint nicht in deinem öffentlichen Profil.</li>
+      <li><b>Schlüssel:</b> Damit der Trainer die Datei lesen und schreiben darf, erstellst du einen Zugangsschlüssel (Personal Access Token), der ausschließlich Gists bearbeiten darf – keine Repositories, keine Einstellungen.</li>
+      <li><b>Abgleich:</b> Nach einer Antwort speichert der Trainer nach zwei Sekunden, beim Schließen oder Wechseln der App sofort. Beim Öffnen holt er den neuesten Stand. Es gilt immer der zuletzt gespeicherte Stand.</li>
+    </ul>
+  </div>
+
+  <ol class="steps">
+  <li class="panel"><h3>GitHub-Konto bereithalten</h3>
+    <p>Melde dich auf <a href="https://github.com/login" target="_blank" rel="noopener">github.com</a> an. Falls du noch kein Konto hast: <a href="https://github.com/signup" target="_blank" rel="noopener">github.com/signup</a> – kostenlos, nur E-Mail-Adresse, Passwort und Benutzername nötig.</p>
+    <p class="sub">Tipp: Schritt 2 geht am Rechner bequemer. Das iPad verbindest du danach in Schritt 4.</p></li>
+
+  <li class="panel"><h3>Zugangsschlüssel erstellen</h3>
+    <p><a class="btn primary" style="display:inline-flex;align-items:center;text-decoration:none" href="https://github.com/settings/tokens/new?scopes=gist&amp;description=KI-Pr%C3%BCfungstrainer" target="_blank" rel="noopener">Schlüssel bei GitHub erstellen</a></p>
+    <p>Der Knopf öffnet die GitHub-Seite <b>New personal access token (classic)</b> mit vorausgefüllten Angaben. Dort:</p>
+    <ul>
+      <li><b>Note:</b> ist bereits „KI-Prüfungstrainer“ – so erkennst du den Schlüssel später wieder.</li>
+      <li><b>Expiration:</b> Laufzeit wählen, z. B. „90 days“, „1 year“ oder „No expiration“. Kürzer ist sicherer; nach Ablauf erstellst du einfach einen neuen Schlüssel (siehe „Pflege und Sicherheit“).</li>
+      <li><b>Select scopes:</b> Nur das Häkchen bei <b>gist</b> ist gesetzt. Keine weiteren Häkchen setzen.</li>
+      <li>Ganz nach unten scrollen und <b>Generate token</b> tippen. Fragt GitHub nach deinem Passwort oder einem Bestätigungscode, gib ihn ein.</li>
+      <li>Der Schlüssel beginnt mit <code>ghp_</code>. Mit dem Kopiersymbol daneben kopieren. <b>GitHub zeigt ihn nur dieses eine Mal an.</b></li>
+      <li>Am besten gleich im Passwortmanager speichern (z. B. in der Passwörter-App bzw. im iCloud-Schlüsselbund), dann hast du ihn für das iPad griffbereit.</li>
+    </ul>
+    <p class="sub">Falls der Knopf nicht funktioniert: github.com → Profilbild oben rechts → <b>Settings</b> → ganz unten links <b>Developer settings</b> → <b>Personal access tokens</b> → <b>Tokens (classic)</b> → <b>Generate new token (classic)</b>.</p></li>
+
+  <li class="panel"><h3>Schlüssel auf diesem Gerät eintragen</h3>
+    <div id="gistForm">
+      <label class="f" for="gistTokenIn">GitHub-Schlüssel</label>
+      <input id="gistTokenIn" type="password" autocomplete="off" spellcheck="false" autocapitalize="off" placeholder="ghp_…" style="width:100%;padding:12px;border-radius:10px;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);font:inherit;min-height:48px">
+      <div class="row" style="margin-top:12px"><button class="btn primary" id="gistConnect">Verbinden</button></div>
+    </div>
+    <div id="gistConnected" hidden class="row"><button class="btn" id="gistCopy">Schlüssel kopieren</button><button class="btn bad" id="gistOff">Trennen</button></div>
+    <p class="sub" id="gistMsg" role="status"></p>
+    <p>Beim Verbinden prüft der Trainer den Schlüssel, sucht in deinem Konto nach einem vorhandenen Lernstand und legt sonst einen neuen Gist an. Dein bisheriger Lernstand auf diesem Gerät wird dabei übernommen.</p>
+    <p class="sub">Der Schlüssel bleibt nur im Speicher dieses Browsers und wird ausschließlich an github.com gesendet.</p></li>
+
+  <li class="panel"><h3>iPad und weitere Geräte verbinden</h3>
+    <ul>
+      <li>Den Trainer auf dem iPad öffnen. Nutzt du ihn als Symbol auf dem Home-Bildschirm, verbinde ihn <b>dort</b> – das Symbol hat einen eigenen Speicher, getrennt von Safari.</li>
+      <li>Reiter <b>Setup</b> öffnen, denselben Schlüssel in Schritt 3 einfügen und <b>Verbinden</b> tippen. Der vorhandene Lernstand wird gefunden und geladen.</li>
+      <li>Schlüssel übertragen: aus dem Passwortmanager einfügen, per AirDrop schicken oder auf einem bereits verbundenen Gerät „Schlüssel kopieren“ tippen und über die geteilte Zwischenablage einfügen.</li>
+      <li>Alternativ für jedes Gerät einen eigenen Schlüssel erstellen (Schritt 2). Dann kannst du einzelne Geräte später gezielt sperren.</li>
+    </ul></li>
+
+  <li class="panel"><h3>Prüfen, ob es funktioniert</h3>
+    <ul>
+      <li>Oben rechts steht „Im GitHub-Gist gespeichert“ mit Uhrzeit.</li>
+      <li>Im Statuskasten oben auf dieser Seite sind alle Punkte grün.</li>
+      <li>Eine Lernkarte beantworten, dann auf dem zweiten Gerät die App neu öffnen: der Fortschritt ist da.</li>
+      <li>Mit dem Link im Statuskasten siehst du die Datei <code>ki-pruefungstrainer.json</code> direkt auf github.com.</li>
+    </ul></li>
+  </ol>
+
+  <div class="panel">
+    <h2>Pflege und Sicherheit</h2>
+    <dl class="faq">
+      <dt>Schlüssel ist abgelaufen</dt><dd>Oben rechts erscheint „GitHub-Schlüssel ungültig oder abgelaufen“. „Trennen“ tippen, mit Schritt 2 einen neuen Schlüssel erstellen und in Schritt 3 eintragen; auf den anderen Geräten ebenso. Der Lernstand bleibt im Gist erhalten.</dd>
+      <dt>Schlüssel widerrufen oder Gerät sperren</dt><dd>github.com → Settings → Developer settings → Personal access tokens → Tokens (classic) → Schlüssel „KI-Prüfungstrainer“ auswählen → Delete. Danach kann kein Gerät mit diesem Schlüssel mehr speichern.</dd>
+      <dt>Gerät nicht mehr synchronisieren</dt><dd>„Trennen“ tippen. Der Schlüssel wird von diesem Gerät entfernt, der Gist bleibt in deinem Konto.</dd>
+      <dt>Ist das sicher?</dt><dd>Der Schlüssel darf nur Gists lesen und schreiben, nicht deine Repositories. Ein Secret Gist ist nicht öffentlich auffindbar, aber für jeden lesbar, der seine genaue Adresse kennt – für Lerndaten unkritisch. Behandle den Schlüssel wie ein Passwort und teile ihn nicht.</dd>
+      <dt>Lernstand aus der Claude-Version übernehmen</dt><dd>In der Claude-Version unter Fortschritt einen Sicherungscode erzeugen und hier nach dem Verbinden unter Fortschritt einspielen.</dd>
+      <dt>Lernstand komplett löschen</dt><dd>Unter Fortschritt „Fortschritt zurücksetzen“ – das wird auch in den Gist übertragen. Den Gist selbst löschst du auf github.com über „Gist ansehen“ → Delete.</dd>
+    </dl>
+  </div>
+
+  <div class="panel" style="margin-top:16px">
+    <h2>Wenn etwas nicht klappt</h2>
+    <dl class="faq">
+      <dt>„Das sieht nicht wie ein GitHub-Schlüssel aus“</dt><dd>Der Schlüssel wurde unvollständig oder mit Leerzeichen kopiert. Er beginnt mit <code>ghp_</code> und ist 40 Zeichen lang. Ist er nicht mehr verfügbar, einen neuen erstellen.</dd>
+      <dt>„GitHub-Schlüssel ungültig oder abgelaufen“ (Fehler 401)</dt><dd>Der Schlüssel ist falsch, abgelaufen oder gelöscht. Neuen Schlüssel erstellen (Schritt 2).</dd>
+      <dt>„Schlüssel ohne Gist-Recht“ (Fehler 403 oder 404)</dt><dd>Beim Erstellen fehlte das Häkchen bei „gist“, oder es wurde ein „Fine-grained token“ ohne Gist-Berechtigung erstellt. Über den Knopf in Schritt 2 einen klassischen Schlüssel erstellen.</dd>
+      <dt>„GitHub nicht erreichbar“</dt><dd>Keine Internetverbindung, oder ein Firmennetz blockiert api.github.com. Der Lernstand bleibt lokal gespeichert und wird beim nächsten Öffnen mit Verbindung abgeglichen.</dd>
+      <dt>Fortschritt fehlt auf dem anderen Gerät</dt><dd>Prüfen, ob beide Geräte oben rechts „Im GitHub-Gist gespeichert“ zeigen. Auf dem iPad darauf achten, dass die Home-Bildschirm-App verbunden ist und nicht nur Safari. App einmal schließen und neu öffnen.</dd>
+      <dt>Zwei Gists im Konto</dt><dd>Passiert, wenn zwei Geräte gleichzeitig zum ersten Mal verbunden werden. Den älteren, leeren Gist auf github.com löschen und auf beiden Geräten „Trennen“ und neu verbinden.</dd>
+    </dl>
+  </div>
+</section>
+</div>
+<script>
+const TOPICS=[
+{id:"prompt",name:"Prompt Engineering"},
+{id:"llm",name:"KI-Grundlagen & Sprachmodelle"},
+{id:"bpmn",name:"Prozessaufnahme & BPMN"},
+{id:"kpi",name:"Kennzahlen, Priorisierung & ROI"},
+{id:"n8n",name:"Automatisierung mit n8n & KI"},
+{id:"assist",name:"KI-Assistenten konfigurieren"},
+{id:"data",name:"Datenanalyse & Visualisierung"},
+{id:"change",name:"Projekt- & Change-Management"},
+{id:"privacy",name:"Datenschutz & KI-Compliance"},
+{id:"strategy",name:"Digitalisierungsvorhaben & Strategie"}
+];
+const YT=q=>"https://www.youtube.com/results?search_query="+encodeURIComponent(q)+"&sp=EgIYAQ%253D%253D";
+const SRC={
+prompt:[
+{t:"Anthropic: Prompt-Engineering-Überblick",u:"https://docs.claude.com/en/docs/build-with-claude/prompt-engineering/overview",k:"Artikel",m:"ca. 8 Min."},
+{t:"DAIR.AI Prompting Guide (deutsch): Zero-/Few-Shot, Chain-of-Thought",u:"https://www.promptingguide.ai/de",k:"Artikel",m:"ca. 5–10 Min. je Kapitel"},
+{t:"Kurzvideos: Prompt Engineering erklärt",u:YT("prompt engineering erklärt"),k:"Video-Suche",m:"unter 4 Min."}],
+llm:[
+{t:"Elements of AI – Universität Helsinki (deutsch)",u:"https://www.elementsofai.de",k:"Uni-Kurs",m:"ca. 10 Min. je Abschnitt"},
+{t:"KI-Campus – Lernplattform mit Hochschulpartnern",u:"https://ki-campus.org",k:"Uni-Angebot",m:"Kurzformate wählen"},
+{t:"IBM Research: Was ist Retrieval-Augmented Generation?",u:"https://research.ibm.com/blog/retrieval-augmented-generation-RAG",k:"Artikel",m:"ca. 6 Min."},
+{t:"Anthropic: Halluzinationen reduzieren",u:"https://docs.claude.com/en/docs/test-and-evaluate/strengthen-guardrails/reduce-hallucinations",k:"Artikel",m:"ca. 5 Min."}],
+bpmn:[
+{t:"BPMN-2.0-Poster der BPM-Offensive Berlin",u:"https://www.bpmb.de/index.php/BPMNPoster",k:"Übersicht",m:"ca. 5 Min."},
+{t:"Camunda: BPMN-Tutorial",u:"https://camunda.com/bpmn/",k:"Artikel",m:"ca. 10 Min."},
+{t:"Kurzvideos: BPMN 2.0 einfach erklärt",u:YT("BPMN 2.0 einfach erklärt"),k:"Video-Suche",m:"unter 4 Min."}],
+kpi:[
+{t:"Investopedia: Return on Investment (ROI)",u:"https://www.investopedia.com/terms/r/returnoninvestment.asp",k:"Artikel",m:"ca. 7 Min."},
+{t:"Wikipedia: MoSCoW-Priorisierung",u:"https://de.wikipedia.org/wiki/MoSCoW-Priorisierung",k:"Artikel",m:"ca. 3 Min."},
+{t:"Kurzvideos: ROI und Amortisation berechnen",u:YT("ROI Amortisationszeit berechnen"),k:"Video-Suche",m:"unter 4 Min."}],
+n8n:[
+{t:"n8n-Dokumentation: Advanced AI (AI-Agent-Node)",u:"https://docs.n8n.io/advanced-ai/",k:"Doku",m:"ca. 8 Min."},
+{t:"n8n-Dokumentation: Fehlerbehandlung",u:"https://docs.n8n.io/flow-logic/error-handling/",k:"Doku",m:"ca. 4 Min."},
+{t:"Kurzvideos: n8n AI Agent",u:YT("n8n AI agent tutorial"),k:"Video-Suche",m:"unter 4 Min."}],
+assist:[
+{t:"Model Context Protocol: Einführung",u:"https://modelcontextprotocol.io/introduction",k:"Doku",m:"ca. 6 Min."},
+{t:"OWASP Top 10 für LLM-Anwendungen (Prompt Injection u. a.)",u:"https://genai.owasp.org/llm-top-10/",k:"Übersicht",m:"ca. 10 Min."},
+{t:"Microsoft Learn: Was ist Copilot Studio?",u:"https://learn.microsoft.com/de-de/microsoft-copilot-studio/fundamentals-what-is-copilot-studio",k:"Doku",m:"ca. 7 Min."}],
+data:[
+{t:"Datawrapper Academy: Diagramme richtig wählen",u:"https://academy.datawrapper.de",k:"Artikel",m:"ca. 5–8 Min. je Artikel"},
+{t:"From Data to Viz – Entscheidungsbaum für Diagrammtypen",u:"https://www.data-to-viz.com",k:"Übersicht",m:"ca. 5 Min."},
+{t:"Kurzvideos: Median und Mittelwert",u:YT("Median Mittelwert Unterschied"),k:"Video-Suche",m:"unter 4 Min."}],
+change:[
+{t:"Kotter: Die 8 Schritte des Wandels",u:"https://www.kotterinc.com/methodology/8-steps/",k:"Artikel",m:"ca. 6 Min."},
+{t:"Prosci: ADKAR-Modell",u:"https://www.prosci.com/methodology/adkar",k:"Artikel",m:"ca. 7 Min."},
+{t:"Scrum Guide (auch deutsch)",u:"https://scrumguides.org",k:"Leitfaden",m:"Kernkapitel ca. 10 Min."}],
+privacy:[
+{t:"EU AI Act: High-Level-Zusammenfassung",u:"https://artificialintelligenceact.eu/high-level-summary/",k:"Übersicht",m:"ca. 10 Min."},
+{t:"EU-Kommission: Rechtsrahmen für KI (Überblick)",u:"https://digital-strategy.ec.europa.eu/de/policies/regulatory-framework-ai",k:"Übersicht",m:"ca. 6 Min."},
+{t:"BfDI – Bundesbeauftragte für den Datenschutz",u:"https://www.bfdi.bund.de",k:"Behörde",m:"Themenseiten ca. 5 Min."}],
+strategy:[
+{t:"openHPI – Kurse des Hasso-Plattner-Instituts",u:"https://open.hpi.de",k:"Uni-Angebot",m:"Videos meist 5–10 Min."},
+{t:"Mittelstand-Digital: Praxisbeispiele und Leitfäden",u:"https://www.mittelstand-digital.de",k:"Förderprogramm",m:"ca. 5 Min. je Beitrag"},
+{t:"Kurzvideos: Digitalisierung vs. digitale Transformation",u:YT("Digitalisierung digitale Transformation Unterschied"),k:"Video-Suche",m:"unter 4 Min."}]
+};
+const CARDS=[
+// PROMPT
+{id:"p1",t:"prompt",l:1,q:"Aus welchen Bausteinen besteht ein strukturierter Prompt?",a:"Rolle (wer antwortet), Kontext (Hintergrund), Aufgabe (was genau), Format (wie die Ausgabe aussehen soll) und Beispiele (gewünschtes Muster). Je klarer diese Teile, desto vorhersagbarer die Antwort.",c:"Rolle, Kontext, Aufgabe, Format, Beispiele",w:["Titel, Einleitung, Hauptteil, Schluss, Quellen","Modell, Temperatur, Token, Seed, Latenz","Ziel, Budget, Termin, Risiko, Team"]},
+{id:"p2",t:"prompt",l:1,q:"Was unterscheidet Few-Shot- von Zero-Shot-Prompting?",a:"Few-Shot gibt dem Modell einige Beispiele aus Eingabe und gewünschter Ausgabe mit. Zero-Shot beschreibt nur die Aufgabe, ohne Beispiele. Few-Shot hilft besonders bei festen Formaten und Tonalität.",c:"Few-Shot liefert einige Beispiele mit, Zero-Shot keine",w:["Few-Shot nutzt ein kleineres Modell","Zero-Shot verbietet dem Modell jede Antwort","Few-Shot begrenzt die Antwort auf wenige Wörter"]},
+{id:"p3",t:"prompt",l:2,q:"Wann lohnt sich Chain-of-Thought-Prompting?",a:"Bei mehrstufigen Denk-, Rechen- oder Prüfaufgaben: Das Modell erarbeitet Zwischenschritte, bevor es antwortet. Nachteil: längere Ausgaben, höhere Kosten und Latenz – für einfache Massenklassifikationen oft unnötig.",c:"Bei mehrstufigen Denk- oder Rechenaufgaben, bei denen Zwischenschritte die Qualität verbessern",w:["Bei kurzen Ja/Nein-Klassifikationen in hohem Volumen, um Kosten zu sparen","Ausschließlich bei der Bildgenerierung","Wenn das Modell möglichst keine Zwischenschritte zeigen soll"]},
+{id:"p4",t:"prompt",l:2,q:"Was ist die Aufgabe eines System-Prompts?",a:"Er legt dauerhaft Rolle, Regeln, Tonalität und Grenzen für eine Anwendung fest – unabhängig von der einzelnen Nutzeranfrage. Der User-Prompt enthält dann die konkrete Anfrage.",c:"Dauerhafte Rolle, Regeln und Grenzen für eine Anwendung festlegen",w:["Die einzelne Frage eines Nutzers enthalten","Das Modell neu trainieren","Die Antwortgeschwindigkeit des Servers steuern"]},
+{id:"p5",t:"prompt",l:2,q:"Was gehört in die Dokumentation einer Prompt-Bibliothek, damit Kollegen sie übernehmen können?",a:"Zweck und Einsatzfall, Version und Änderungshistorie, erwartete Eingaben und Ausgabeformat, Beispiel- bzw. Testfälle, bekannte Grenzen und eine verantwortliche Person.",c:"Zweck, Version, Ein-/Ausgabeformat, Testfälle, Grenzen und Verantwortliche",w:["Nur der Prompt-Text, alles andere ist überflüssig","Die Lieblingsantworten des Erstellers","Das Passwort des KI-Kontos zur Vereinfachung"]},
+{id:"p6",t:"prompt",l:3,q:"Welcher Vorteil spricht für eine mehrstufige Prompt-Kette, z. B. bei der Belegprüfung?",a:"Die Aufgabe wird in Schritte zerlegt (Daten extrahieren → Regeln prüfen → Ergebnis bewerten). Jeder Zwischenstand lässt sich validieren, Fehler lassen sich einem Schritt zuordnen, und einzelne Schritte können gezielt verbessert werden.",c:"Zwischenergebnisse lassen sich einzeln prüfen und Fehler gezielt einem Schritt zuordnen",w:["Das Modell braucht dadurch keinen Kontext mehr","Halluzinationen sind damit ausgeschlossen","Es genügt immer ein einziger Modellaufruf"]},
+{id:"p7",t:"prompt",l:3,q:"Welche Maßnahme senkt das Halluzinationsrisiko bei strukturierten Ausgaben (z. B. JSON) am wirksamsten?",a:"Aussagen an mitgelieferte Quelltexte binden, ausdrücklich „unbekannt“ bzw. null erlauben, ein festes Schema mit Pflichtfeldern vorgeben und die Ausgabe automatisch validieren und stichprobenartig prüfen.",c:"„Unbekannt“ erlauben und Aussagen an mitgelieferte Quellen binden, Ausgabe gegen ein Schema prüfen",w:["Die Temperatur auf den Maximalwert setzen","Den Prompt möglichst kurz und ohne Kontext halten","Das Modell bitten, selbstsicherer zu formulieren"]},
+// LLM
+{id:"l1",t:"llm",l:1,q:"Was ist ein großes Sprachmodell (LLM) im Kern?",a:"Ein neuronales Netz, das auf sehr großen Textmengen trainiert wurde und Text erzeugt, indem es wahrscheinliche nächste Token vorhersagt. Es ist keine Datenbank mit fertigen Antworten.",c:"Ein Modell, das auf großen Textmengen trainiert ist und wahrscheinliche nächste Token vorhersagt",w:["Eine Datenbank, die fertige Antworten nachschlägt","Ein regelbasiertes Expertensystem mit festen Wenn-dann-Regeln","Eine Suchmaschine, die immer live das Internet abfragt"]},
+{id:"l2",t:"llm",l:1,q:"Was versteht man unter einer Halluzination eines KI-Modells?",a:"Eine Ausgabe, die plausibel und sicher klingt, aber sachlich falsch oder erfunden ist – etwa nicht existierende Quellen, Zahlen oder Zitate.",c:"Eine plausibel klingende, aber falsche oder erfundene Aussage",w:["Ein Absturz des Modells bei langen Eingaben","Eine bewusst kreative Antwort auf Wunsch","Eine Antwort, die zu lange dauert"]},
+{id:"l3",t:"llm",l:2,q:"Was beschreibt das Kontextfenster eines Sprachmodells?",a:"Die maximale Textmenge (gemessen in Token), die das Modell in einer Anfrage gleichzeitig berücksichtigen kann – Eingabe, Verlauf, Dokumente und Ausgabe zusammen.",c:"Die maximale Menge an Token, die das Modell pro Anfrage berücksichtigen kann",w:["Die Anzahl gleichzeitiger Nutzer","Das Datum, bis zu dem das Modell trainiert wurde","Die Bildschirmgröße der Chat-Oberfläche"]},
+{id:"l4",t:"llm",l:2,q:"Welche Temperatur-Einstellung eignet sich für eine Datenextraktion aus Rechnungen?",a:"Eine niedrige Temperatur: Sie macht Ausgaben konsistenter und weniger zufällig. Höhere Werte erhöhen die Variation und eignen sich eher für kreative Texte.",c:"Eine niedrige Temperatur für konsistente, wenig zufällige Ausgaben",w:["Eine sehr hohe Temperatur für mehr Kreativität","Die Temperatur spielt für Extraktion keine Rolle","Abwechselnd hohe und niedrige Werte"]},
+{id:"l5",t:"llm",l:3,q:"Was leistet Retrieval-Augmented Generation (RAG)?",a:"Vor der Antwort werden passende Textstellen aus einer Wissensbasis (z. B. Firmendokumente) gesucht und in den Prompt gegeben. So nutzt das Modell aktuelles, firmenspezifisches Wissen und kann Quellen angeben – ohne neu trainiert zu werden.",c:"Relevante Dokumente werden abgerufen und dem Modell als Kontext mitgegeben",w:["Das Modell wird bei jeder Anfrage neu trainiert","Antworten werden nachträglich von Menschen geschrieben","Das Modell wird verkleinert, um schneller zu antworten"]},
+{id:"l6",t:"llm",l:3,q:"Ein Unternehmen will einen Assistenten, der stets die aktuellen, häufig geänderten Produktdaten kennt. Welcher Ansatz passt am besten?",a:"RAG: Die Wissensbasis wird einfach aktualisiert, das Modell bleibt unverändert. Fine-Tuning eignet sich eher für Stil, Format oder spezielle Aufgaben, nicht für schnell wechselndes Faktenwissen.",c:"Retrieval-Augmented Generation mit regelmäßig aktualisierter Wissensbasis",w:["Monatliches Fine-Tuning des Modells","Alle Produktdaten fest in den System-Prompt schreiben und nie ändern","Ein größeres Modell, das die Daten bereits kennt"]},
+// BPMN
+{id:"b1",t:"bpmn",l:1,q:"Wofür steht BPMN und wozu dient es?",a:"Business Process Model and Notation – eine international standardisierte grafische Notation (OMG, auch als ISO-Norm) zur Modellierung von Geschäftsprozessen, verständlich für Fachbereich und IT.",c:"Standardnotation zur grafischen Modellierung von Geschäftsprozessen",w:["Programmiersprache für Workflow-Engines","Kennzahlensystem zur Prozessbewertung","Projektmanagement-Methode für IT-Projekte"]},
+{id:"b2",t:"bpmn",l:1,q:"Welches BPMN-Symbol steht für ein Gateway (Verzweigung)?",a:"Die Raute. Kreise sind Ereignisse (Start, Zwischen, Ende), abgerundete Rechtecke sind Aktivitäten, durchgezogene Pfeile sind Sequenzflüsse.",c:"Eine Raute",w:["Ein Kreis","Ein abgerundetes Rechteck","Ein gestrichelter Pfeil"]},
+{id:"b3",t:"bpmn",l:2,q:"Wie unterscheiden sich Pool und Lane?",a:"Ein Pool stellt einen eigenständigen Prozessbeteiligten dar (z. B. Unternehmen, Kunde). Lanes unterteilen einen Pool nach Rollen oder Abteilungen. Zwischen Pools wird per Nachrichtenfluss (gestrichelt) kommuniziert.",c:"Pool = eigenständiger Beteiligter, Lane = Rolle oder Abteilung innerhalb des Pools",w:["Pool = Aktivität, Lane = Ereignis","Beide Begriffe bedeuten dasselbe","Lane = Unternehmen, Pool = einzelne Person darin"]},
+{id:"b4",t:"bpmn",l:2,q:"Was bewirkt ein paralleles Gateway (AND) im Unterschied zu einem exklusiven (XOR)?",a:"AND aktiviert alle ausgehenden Pfade gleichzeitig und wartet beim Zusammenführen auf alle. XOR wählt genau einen Pfad anhand einer Bedingung.",c:"Es aktiviert alle ausgehenden Pfade gleichzeitig",w:["Es wählt genau einen Pfad nach einer Bedingung","Es beendet den Prozess sofort","Es wählt zufällig einen Pfad"]},
+{id:"b5",t:"bpmn",l:3,q:"Welche Methode rekonstruiert den tatsächlichen Prozessablauf aus Ereignisprotokollen (Event Logs) von IT-Systemen?",a:"Process Mining. Es zeigt, wie Prozesse wirklich laufen – inklusive Schleifen, Abweichungen und Wartezeiten – und ergänzt Interviews, Workshops und Beobachtung bei der Ist-Aufnahme.",c:"Process Mining",w:["Stakeholder-Interview","Brainstorming-Workshop","Wertstromdesign auf Papier"]},
+{id:"b6",t:"bpmn",l:3,q:"Welcher Prozess ist am wenigsten für eine Automatisierung geeignet?",a:"Gut geeignet sind Prozesse mit hohem Volumen, klaren Regeln, digitalen strukturierten Eingaben, wenigen Ausnahmen und stabilem Ablauf. Seltene Einzelfallentscheidungen mit vielen Ausnahmen bringen wenig Nutzen und hohes Risiko.",c:"Seltene Einzelfallentscheidungen mit vielen Ausnahmen und unstrukturierten Informationen",w:["Tägliches Erfassen standardisierter Eingangsrechnungen","Regelbasierte Weiterleitung von Supportanfragen nach Kategorie","Monatlicher Export gleichförmiger Berichte"]},
+// KPI
+{id:"k1",t:"kpi",l:1,q:"Eine Automatisierung kostet 20.000 € und bringt 30.000 € Einsparung. Wie hoch ist der ROI?",a:"ROI = (Nutzen − Investition) ÷ Investition × 100 = (30.000 − 20.000) ÷ 20.000 × 100 = 50 %.",c:"50 %",w:["150 %","33 %","10.000 %"]},
+{id:"k2",t:"kpi",l:1,q:"Wofür steht SMART bei der Formulierung von Zielen?",a:"Spezifisch, messbar, attraktiv bzw. akzeptiert, realistisch, terminiert. So werden Ziele zu überprüfbaren Kennzahlen.",c:"Spezifisch, messbar, attraktiv, realistisch, terminiert",w:["Schnell, modern, automatisiert, robust, technisch","Sicher, mobil, analog, rechtlich, technisch","Strategisch, mittelfristig, agil, rentabel, teamorientiert"]},
+{id:"k3",t:"kpi",l:2,q:"Investition 24.000 €, jährliche Einsparung 8.000 €. Wie lang ist die (statische) Amortisationszeit?",a:"Amortisationszeit = Investition ÷ jährlicher Rückfluss = 24.000 ÷ 8.000 = 3 Jahre.",c:"3 Jahre",w:["1/3 Jahr","8 Jahre","32 Jahre"]},
+{id:"k4",t:"kpi",l:2,q:"Was misst die Durchlaufzeit eines Prozesses?",a:"Die gesamte Zeit vom Start bis zum Ende eines Vorgangs – inklusive Liege-, Warte- und Transportzeiten. Die reine Bearbeitungszeit ist meist nur ein kleiner Teil davon.",c:"Die Zeit vom Start bis zum Ende inklusive Warte- und Liegezeiten",w:["Nur die aktive Bearbeitungszeit eines Mitarbeiters","Die Anzahl bearbeiteter Fälle pro Tag","Die Fehlerquote am Prozessende"]},
+{id:"k5",t:"kpi",l:3,q:"Was sind „Quick Wins“ in einer Nutzen-Aufwand-Matrix?",a:"Vorhaben mit hohem Nutzen und geringem Aufwand – sie werden typischerweise zuerst umgesetzt. MoSCoW (Must, Should, Could, Won't) ist eine weitere gängige Priorisierungsmethode.",c:"Vorhaben mit hohem Nutzen und geringem Aufwand",w:["Vorhaben mit geringem Nutzen und geringem Aufwand","Vorhaben mit hohem Nutzen und hohem Aufwand","Vorhaben, die in einer Woche abgeschlossen sein müssen"]},
+{id:"k6",t:"kpi",l:3,q:"Welcher Kostenblock wird bei ROI-Rechnungen für KI-Automatisierung häufig vergessen?",a:"Laufende Kosten (Total Cost of Ownership): API- bzw. Nutzungsgebühren, Wartung und Anpassung der Workflows, Monitoring und Qualitätsprüfung, Schulung sowie Lizenzen.",c:"Laufende Kosten wie API-Nutzung, Wartung, Monitoring und Schulung",w:["Die einmalige Anschaffung der Software","Die Einsparung durch weniger manuelle Arbeit","Der Kaufpreis der Hardware für Büro-PCs"]},
+// N8N
+{id:"n1",t:"n8n",l:1,q:"Was ist n8n?",a:"Ein Werkzeug zur Workflow-Automatisierung, das Apps und Schnittstellen über Bausteine (Nodes) verbindet. Es kann selbst gehostet oder als Cloud-Dienst genutzt werden und bietet KI-Nodes, z. B. einen AI-Agent-Node.",c:"Ein Werkzeug zur Workflow-Automatisierung mit verknüpfbaren Nodes",w:["Ein großes Sprachmodell","Eine Programmiersprache für Datenbanken","Ein BPMN-Modellierungsstandard"]},
+{id:"n2",t:"n8n",l:1,q:"Was ist die Aufgabe eines Trigger-Nodes?",a:"Er startet den Workflow – etwa per Zeitplan, bei einer neuen E-Mail, einem Formulareintrag oder einem eingehenden Webhook. Die folgenden Nodes führen dann Aktionen aus.",c:"Er startet den Workflow bei einem bestimmten Ereignis",w:["Er beendet den Workflow bei Fehlern","Er speichert Passwörter","Er formatiert die Ausgabe als PDF"]},
+{id:"n3",t:"n8n",l:2,q:"Wozu dient ein Webhook in einem Automatisierungs-Workflow?",a:"Ein Webhook ist eine URL, die einen Workflow sofort startet, sobald ein anderes System dort Daten hinsendet (HTTP-Request). Das ist schneller und effizienter als regelmäßiges Abfragen (Polling).",c:"Er startet den Workflow sofort, wenn ein anderes System Daten an eine URL sendet",w:["Er fragt jede Minute ein Postfach ab","Er verschlüsselt die Daten des Workflows","Er erstellt automatisch ein BPMN-Diagramm"]},
+{id:"n4",t:"n8n",l:2,q:"Was ist in n8n ein Error Workflow?",a:"Ein eigener Workflow mit Error-Trigger, der ausgelöst wird, wenn ein anderer Workflow fehlschlägt – etwa um das Team zu benachrichtigen oder den Fall zu protokollieren. Ergänzend: Retry-Einstellungen an einzelnen Nodes.",c:"Ein separater Workflow, der beim Fehlschlagen eines anderen ausgelöst wird",w:["Ein Workflow, der absichtlich Fehler erzeugt","Die Liste aller gelöschten Workflows","Ein Testmodus ohne echte Daten"]},
+{id:"n5",t:"n8n",l:3,q:"Wann ist ein fester (deterministischer) Workflow einem KI-Agenten vorzuziehen?",a:"Wenn der Ablauf klar definiert, reguliert oder kritisch ist und nachvollziehbar gleich ablaufen muss. Ein Agent entscheidet selbst über Werkzeuge und Schrittfolge – flexibel, aber weniger vorhersehbar.",c:"Wenn der Ablauf klar definiert ist und nachvollziehbar immer gleich laufen muss",w:["Wenn die Aufgabe offen ist und viele unbekannte Fälle enthält","Wenn möglichst kreative Lösungen gefragt sind","Feste Workflows sind Agenten grundsätzlich unterlegen"]},
+{id:"n6",t:"n8n",l:3,q:"Wo sollte ein Human-in-the-Loop-Schritt in einem KI-Workflow eingebaut werden?",a:"Vor Aktionen mit hoher Tragweite oder schwer umkehrbaren Folgen – z. B. Zahlungen freigeben, E-Mails an Kunden versenden, Daten löschen. API-Schlüssel gehören dabei in gesicherte Credentials, nie in Klartext-Felder.",c:"Vor folgenreichen Aktionen wie Zahlungen oder dem Versand von Kundenmails",w:["Direkt nach dem Trigger, bei jedem Workflow","Nur am Ende, nachdem alle Aktionen ausgeführt wurden","Nie – menschliche Prüfung verlangsamt nur"]},
+// ASSIST
+{id:"a1",t:"assist",l:1,q:"Aus welchen Bausteinen wird ein eigener KI-Assistent typischerweise konfiguriert?",a:"Anweisungen (Systemprompt), Wissensdateien bzw. -quellen und Werkzeuge oder Aktionen. Beispiele: Custom GPTs, Claude-Projekte, Gemini Gems, Agenten in Microsoft Copilot Studio.",c:"Anweisungen, Wissensquellen und Werkzeuge bzw. Aktionen",w:["Bildschirmfarbe, Schriftart und Logo","Nur ein Name und ein Profilbild","Prozessor, Arbeitsspeicher und Festplatte"]},
+{id:"a2",t:"assist",l:1,q:"Wozu dienen hochgeladene Wissensdateien in einem KI-Assistenten?",a:"Der Assistent stützt seine Antworten auf firmenspezifische Inhalte (z. B. Richtlinien, Produktdaten). Sie ersetzen kein Training des Modells, sondern liefern Kontext.",c:"Damit Antworten sich auf firmenspezifische Inhalte stützen",w:["Damit das Modell dauerhaft neu trainiert wird","Damit der Assistent schneller startet","Damit niemand mehr Anweisungen schreiben muss"]},
+{id:"a3",t:"assist",l:2,q:"Wie testet man eine Assistenten-Konfiguration sinnvoll?",a:"Mit einem festen Testset aus typischen Fällen und Grenzfällen samt erwarteter Ergebnisse. Nach jeder Änderung erneut laufen lassen (Regressionstest) und Ergebnisse dokumentieren.",c:"Mit festem Testset aus typischen und Grenzfällen, nach jeder Änderung wiederholt",w:["Einmal ausprobieren, wenn es klappt, fertig","Nur die Antwortgeschwindigkeit messen","Nutzer sollen Fehler im Betrieb melden, Tests sind unnötig"]},
+{id:"a4",t:"assist",l:2,q:"Was ist das Model Context Protocol (MCP)?",a:"Ein offener Standard, über den KI-Anwendungen einheitlich an externe Werkzeuge und Datenquellen angebunden werden – etwa Kalender, Ticketsysteme oder Datenbanken. Mehrere Anbieter unterstützen ihn.",c:"Ein offener Standard zur Anbindung von KI-Anwendungen an Werkzeuge und Datenquellen",w:["Ein Datenschutzgesetz für KI","Ein Verfahren zur Kompression von Modellen","Ein Bewertungsbogen für Prompts"]},
+{id:"a5",t:"assist",l:3,q:"Was ist eine Prompt Injection?",a:"In Inhalten (E-Mail, Webseite, Dokument) versteckte Anweisungen, die das Modell zu unerwünschtem Verhalten bringen sollen. Gegenmaßnahmen: Rechte minimieren, externe Inhalte als Daten behandeln, kritische Aktionen freigeben lassen.",c:"Versteckte Anweisungen in Inhalten, die das Modell zu unerwünschtem Verhalten bringen",w:["Das gezielte Einspielen von Trainingsdaten","Ein Tuning-Verfahren zur Beschleunigung","Das Kopieren eines Prompts in eine Bibliothek"]},
+{id:"a6",t:"assist",l:3,q:"Welches Prinzip sollte für Werkzeugrechte eines KI-Assistenten gelten?",a:"Least Privilege: nur die Rechte, die für die Aufgabe nötig sind (z. B. lesen statt schreiben), plus Protokollierung und Freigabe für folgenreiche Aktionen.",c:"Nur die minimal nötigen Rechte vergeben (Least Privilege)",w:["Volle Admin-Rechte, damit nichts blockiert","Rechte nach Belieben des Modells","Rechte vergeben, sobald ein Nutzer es verlangt"]},
+// DATA
+{id:"d1",t:"data",l:1,q:"Welcher Diagrammtyp eignet sich am besten für die Entwicklung einer Kennzahl über 12 Monate?",a:"Ein Liniendiagramm zeigt Verläufe über die Zeit. Balken eignen sich für Vergleiche zwischen Kategorien, Kreisdiagramme nur für wenige Anteile eines Ganzen.",c:"Liniendiagramm",w:["Kreisdiagramm","Streudiagramm ohne Zeitachse","Tabelle mit Ampelfarben"]},
+{id:"d2",t:"data",l:1,q:"Warum ist der Median oft aussagekräftiger als der Mittelwert?",a:"Der Median ist robust gegenüber Ausreißern: Ein einzelner extrem langer Fall verzerrt den Mittelwert stark, den Median kaum. Beispiel: Bearbeitungszeiten 2, 3, 3, 4, 40 Min. → Mittelwert 10,4, Median 3.",c:"Er ist robust gegenüber Ausreißern",w:["Er ist immer größer als der Mittelwert","Er berücksichtigt alle Werte gleich stark","Er lässt sich nur bei Zeitreihen berechnen"]},
+{id:"d3",t:"data",l:2,q:"Zwei Kennzahlen steigen gemeinsam. Was lässt sich daraus sicher schließen?",a:"Nur dass sie korrelieren. Ob eine die andere verursacht, bleibt offen – es kann eine gemeinsame Ursache oder Zufall dahinterstehen. Kausalität braucht z. B. Experimente oder fundierte Begründung.",c:"Dass sie korrelieren – Kausalität ist damit nicht belegt",w:["Dass die erste Kennzahl die zweite verursacht","Dass beide Kennzahlen falsch erhoben wurden","Dass ein Fehler im Diagramm vorliegt"]},
+{id:"d4",t:"data",l:2,q:"Doppelte Kundendatensätze verletzen vor allem welche Dimension der Datenqualität?",a:"Die Eindeutigkeit. Weitere Dimensionen: Vollständigkeit, Richtigkeit, Konsistenz und Aktualität. Schlechte Datenqualität schwächt jede Automatisierung und KI-Auswertung.",c:"Eindeutigkeit",w:["Aktualität","Verfügbarkeit","Lesbarkeit"]},
+{id:"d5",t:"data",l:3,q:"Warum ist eine abgeschnittene y-Achse bei einem Balkendiagramm problematisch?",a:"Balken vermitteln Größe über ihre Länge. Beginnt die Achse nicht bei null, wirken kleine Unterschiede dramatisch groß – die Darstellung wird irreführend.",c:"Kleine Unterschiede wirken übertrieben groß",w:["Das Diagramm wird zu breit","Farben werden falsch dargestellt","Die Daten werden dadurch gelöscht"]},
+{id:"d6",t:"data",l:3,q:"Was macht eine Kennzahl in einem Dashboard aussagekräftig?",a:"Ein Vergleichswert: Ziel, Vorperiode oder Benchmark. Eine Zahl allein sagt nicht, ob sie gut oder schlecht ist. Dazu wenige, klar priorisierte KPIs statt vieler Diagramme.",c:"Ein Vergleichswert wie Ziel, Vorperiode oder Benchmark",w:["Möglichst viele Nachkommastellen","Eine auffällige 3D-Darstellung","Eine Aktualisierung einmal im Jahr"]},
+// CHANGE
+{id:"c1",t:"change",l:1,q:"Womit beginnt Kotters 8-Stufen-Modell für Veränderungen?",a:"Mit dem Erzeugen eines Gefühls der Dringlichkeit. Danach folgen u. a. Führungskoalition bilden, Vision entwickeln, kommunizieren, Hindernisse beseitigen, schnelle Erfolge sichtbar machen und den Wandel verankern.",c:"Ein Gefühl der Dringlichkeit erzeugen",w:["Neue Software sofort einführen","Das Budget kürzen","Den Wandel in der Kultur verankern"]},
+{id:"c2",t:"change",l:1,q:"Was ist ein Sprint in Scrum?",a:"Eine feste Zeitbox von höchstens einem Monat (oft 2 Wochen), in der ein nutzbares Inkrement entsteht. Klassische Projekte (Wasserfall) planen dagegen Phasen nacheinander.",c:"Eine feste Zeitbox von höchstens einem Monat für ein nutzbares Ergebnis",w:["Eine besonders schnelle Überstunden-Phase","Das abschließende Projekt-Review","Ein Meeting nur für Führungskräfte"]},
+{id:"c3",t:"change",l:2,q:"Wofür stehen die Buchstaben des ADKAR-Modells?",a:"Awareness (Bewusstsein), Desire (Wunsch), Knowledge (Wissen), Ability (Fähigkeit), Reinforcement (Verstärkung) – die Stufen, die jede einzelne Person bei einer Veränderung durchläuft.",c:"Awareness, Desire, Knowledge, Ability, Reinforcement",w:["Analyse, Design, Konzept, Aufbau, Review","Agile, Digital, KI, Automatisierung, ROI","Aufgabe, Dauer, Kosten, Abnahme, Risiko"]},
+{id:"c4",t:"change",l:2,q:"Wie geht man laut Einfluss-Interesse-Matrix mit Stakeholdern um, die hohen Einfluss und hohes Interesse haben?",a:"Eng einbinden und aktiv managen (Key Player). Hoher Einfluss, wenig Interesse: zufriedenstellen. Wenig Einfluss, hohes Interesse: informieren. Beides gering: beobachten.",c:"Eng einbinden und aktiv managen",w:["Nur beobachten","Nur gelegentlich informieren","Aus dem Projekt heraushalten"]},
+{id:"c5",t:"change",l:3,q:"Mitarbeitende fürchten durch die KI-Einführung um ihre Aufgaben. Welche Maßnahme wirkt am ehesten?",a:"Früh beteiligen, offen kommunizieren, was sich ändert und was nicht, und gezielt qualifizieren. Widerstand entsteht oft aus Unsicherheit und Kontrollverlust – Beteiligung und Kompetenzaufbau adressieren beides.",c:"Früh beteiligen, transparent kommunizieren und gezielt qualifizieren",w:["Die Einführung geheim halten, bis sie fertig ist","Widerstand ignorieren, er legt sich von selbst","Die Einführung per Anweisung ohne Erklärung durchsetzen"]},
+{id:"c6",t:"change",l:3,q:"Was ist der kritische Pfad in einem Projektplan?",a:"Die Kette von Vorgängen ohne zeitlichen Puffer. Verzögert sich ein Vorgang darauf, verschiebt sich das Projektende. Er zeigt, wo Steuerung am meisten bewirkt.",c:"Die Folge von Vorgängen ohne Puffer, deren Verzögerung das Projektende verschiebt",w:["Der Teil des Projekts mit dem höchsten Risiko für Datenschutz","Der Weg, auf dem Entscheidungen eskaliert werden","Die teuersten Arbeitspakete des Projekts"]},
+// PRIVACY
+{id:"r1",t:"privacy",l:1,q:"Welche dieser Angaben ist ein personenbezogenes Datum?",a:"Alle Informationen, die sich auf eine identifizierte oder identifizierbare Person beziehen – auch eine dienstliche E-Mail-Adresse wie vorname.nachname@firma.de. Aggregierte, anonyme Kennzahlen gehören nicht dazu.",c:"Die dienstliche E-Mail-Adresse einer Mitarbeiterin",w:["Der Gesamtumsatz eines Quartals","Die Anzahl der Standorte eines Unternehmens","Die durchschnittliche Bearbeitungszeit aller Tickets"]},
+{id:"r2",t:"privacy",l:1,q:"Was bedeutet der Grundsatz der Datenminimierung?",a:"Nur so viele personenbezogene Daten verarbeiten, wie für den Zweck wirklich nötig sind. Für KI-Workflows heißt das z. B.: Namen entfernen oder pseudonymisieren, bevor Texte an ein Modell gehen.",c:"Nur so viele personenbezogene Daten verarbeiten, wie für den Zweck nötig sind",w:["Daten möglichst komprimiert speichern","Möglichst wenige Mitarbeitende im Datenschutz einsetzen","Daten nur auf kleinen Festplatten speichern"]},
+{id:"r3",t:"privacy",l:2,q:"Ein externer KI-Dienst verarbeitet Kundendaten im Auftrag des Unternehmens. Was ist dafür typischerweise nötig?",a:"Eine Vereinbarung zur Auftragsverarbeitung mit dem Dienstleister, außerdem eine Prüfung von Speicherort, Nutzung der Daten zum Training und technischen Schutzmaßnahmen.",c:"Eine Vereinbarung zur Auftragsverarbeitung mit dem Anbieter",w:["Nichts, solange der Dienst kostenlos ist","Nur eine mündliche Absprache","Eine Patentanmeldung"]},
+{id:"r4",t:"privacy",l:2,q:"Nach welchem Grundprinzip ordnet der EU AI Act KI-Systeme ein?",a:"Risikobasiert: Je höher das Risiko für Gesundheit, Sicherheit und Grundrechte, desto strenger die Pflichten – von verbotenen Praktiken über Hochrisiko-Systeme und Transparenzpflichten bis zu minimalem Risiko ohne besondere Auflagen.",c:"Nach dem Risiko für Gesundheit, Sicherheit und Grundrechte",w:["Nach der Größe des Herstellers","Nach der Anzahl der Modellparameter allein","Nach dem Preis des Systems"]},
+{id:"r5",t:"privacy",l:3,q:"Welche Anwendung gilt nach dem EU AI Act typischerweise als Hochrisiko-System?",a:"KI zur Vorauswahl von Bewerbungen, weil sie über Zugang zu Beschäftigung mitentscheidet. Spamfilter oder Rechtschreibhilfen gelten als geringes Risiko; Chatbots unterliegen vor allem Transparenzpflichten.",c:"KI-gestützte Vorauswahl von Bewerbungen",w:["Ein Spamfilter im E-Mail-Programm","Eine Rechtschreibkorrektur","Eine KI-gestützte Musik-Playlist"]},
+{id:"r6",t:"privacy",l:3,q:"Was sollte ein Unternehmen tun, bevor Mitarbeitende generative KI breit nutzen?",a:"Eine KI-Richtlinie festlegen (erlaubte Tools, keine sensiblen Daten in ungeprüfte Dienste), Mitarbeitende schulen – der AI Act verlangt ausreichende KI-Kompetenz – und bei riskanten Verarbeitungen eine Datenschutz-Folgenabschätzung prüfen.",c:"Richtlinie festlegen, Mitarbeitende schulen und Risiken vorab prüfen",w:["Jedes Tool erlauben und erst bei Problemen reagieren","KI-Nutzung komplett verbieten, ohne Alternativen","Nur die IT-Abteilung informieren"]},
+// STRATEGY
+{id:"s1",t:"strategy",l:1,q:"Wie unterscheiden sich Digitalisierung von Informationen und digitale Transformation?",a:"Digitalisierung im engen Sinn wandelt Analoges in Digitales um (Papier → PDF) bzw. digitalisiert Prozesse. Digitale Transformation verändert darüber hinaus Geschäftsmodelle, Organisation und Kultur.",c:"Transformation verändert zusätzlich Geschäftsmodelle, Organisation und Kultur",w:["Beide Begriffe bedeuten exakt dasselbe","Transformation meint nur das Einscannen von Papier","Digitalisierung betrifft ausschließlich Hardware"]},
+{id:"s2",t:"strategy",l:1,q:"Was ist der Unterschied zwischen Proof of Concept und Pilot?",a:"Ein Proof of Concept prüft, ob etwas technisch machbar ist. Ein Pilot testet eine Lösung im echten Betrieb mit begrenzter Nutzergruppe, bevor sie ausgerollt wird.",c:"PoC prüft Machbarkeit, Pilot testet im echten Betrieb mit begrenzter Gruppe",w:["Ein Pilot ist immer günstiger als ein PoC","PoC ist der Rollout für alle Nutzer","Es gibt keinen Unterschied"]},
+{id:"s3",t:"strategy",l:2,q:"Was gehört in einen Business Case für ein Digitalisierungsvorhaben?",a:"Ausgangslage und Problem, Ziel, Lösungsoptionen, Kosten und Nutzen (inkl. ROI), Risiken, Zeitplan und eine klare Empfehlung.",c:"Ausgangslage, Ziel, Optionen, Kosten/Nutzen, Risiken und Empfehlung",w:["Nur die Liste der benötigten Software","Ausschließlich technische Architekturdiagramme","Nur die Lebensläufe des Projektteams"]},
+{id:"s4",t:"strategy",l:2,q:"Wann spricht viel für „Buy“ statt „Make“ bei einer KI-Lösung?",a:"Wenn es eine passende Standardlösung gibt, der Prozess kein Alleinstellungsmerkmal ist und schnelle Einführung, Wartung durch den Anbieter und planbare Kosten wichtig sind.",c:"Wenn eine passende Standardlösung existiert und der Prozess kein Alleinstellungsmerkmal ist",w:["Wenn der Prozess der zentrale Wettbewerbsvorteil ist","Wenn das Unternehmen volle Kontrolle über jedes Detail braucht","Grundsätzlich immer, Eigenentwicklung lohnt nie"]},
+{id:"s5",t:"strategy",l:3,q:"Wie wird ein Risiko in einer Risikomatrix typischerweise bewertet?",a:"Nach Eintrittswahrscheinlichkeit und Auswirkung (Schadensausmaß), oft als Produkt beider Werte. Daraus folgen Maßnahmen: vermeiden, vermindern, übertragen oder akzeptieren.",c:"Nach Eintrittswahrscheinlichkeit und Auswirkung",w:["Nach dem Alphabet","Nach dem Datum der Entdeckung","Nur nach den Kosten der Gegenmaßnahme"]},
+{id:"s6",t:"strategy",l:3,q:"Wozu dient ein digitales Reifegradmodell?",a:"Es bewertet den digitalen Entwicklungsstand einer Organisation in Stufen und Dimensionen (z. B. Strategie, Prozesse, Daten, Kultur). So lassen sich Lücken erkennen und nächste Schritte priorisieren.",c:"Den digitalen Entwicklungsstand bewerten und nächste Schritte ableiten",w:["Das Alter der IT-Hardware ermitteln","Gehälter in der IT-Abteilung festlegen","Die Rechtskonformität eines Vertrags prüfen"]}
+];
+const LV={1:"Einfach",2:"Mittel",3:"Schwer"};
+const topicName=id=>(TOPICS.find(t=>t.id===id)||{name:"Alle Themen"}).name;
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+
+/* ---------- persistence ---------- */
+const LS="dmki-progress-v1";
+let state={cards:{},quizzes:[],updated:0};
+try{const s=localStorage.getItem(LS);if(s){const p=JSON.parse(s);state={cards:p.cards||{},quizzes:p.quizzes||[],updated:p.updated||0}}}catch(e){}
+let remote=null,pushing=false,pending=false,pushT=null,syncReason="Verbinde …",lastSync=0,cloudName="Claude-Konto";
+function setSync(mode,reason){if(reason)syncReason=reason;const el=$("sync");el.className="sync "+mode;
+  el.querySelector("span").textContent=mode==="cloud"?"Im "+cloudName+" gespeichert"+(lastSync?" ("+new Date(lastSync).toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"})+")":""):syncReason;
+  const d=$("syncDetail");if(d)d.textContent=mode==="cloud"?"Synchronisierung aktiv. Dein Fortschritt liegt in deinem "+cloudName+" und zusätzlich auf diesem Gerät.":"Status: "+syncReason+". Lokale Sicherung auf diesem Gerät ist aktiv.";}
+function persistLocal(){try{localStorage.setItem(LS,JSON.stringify(state))}catch(e){}}
+function save(){norm();state.updated=Date.now();if(state.quizzes.length>300)state.quizzes=state.quizzes.slice(-300);persistLocal();
+  if(remote){clearTimeout(pushT);pushT=setTimeout(pushRemote,pushDelay)}}
+async function pushRemote(){if(!remote)return;clearTimeout(pushT);pushT=null;if(pushing){pending=true;return}pushing=true;
+  try{await remote.set(JSON.parse(JSON.stringify(state)));lastSync=Date.now();setSync("cloud")}
+  catch(e){setSync("error","Speichern online fehlgeschlagen ("+((e&&(e.code||e.message))||"Fehler")+")")}
+  pushing=false;if(pending){pending=false;pushRemote()}}
+async function pullRemote(){if(!remote)return;
+  const snap=await remote.get();
+  if(snap.exists){const r=snap.data()||{};
+    if((r.updated||0)>(state.updated||0)){state={cards:r.cards||{},quizzes:r.quizzes||[],updated:r.updated||0};norm();persistLocal();if(!quiz)renderAll()}
+    else if((state.updated||0)>(r.updated||0))await pushRemote();}
+  else if(state.updated)await pushRemote();
+  lastSync=Date.now();setSync("cloud");}
+
+
+/* ---- GitHub Gist ---- */
+const GIST_TOKEN_LS="dmki-gist-token",GIST_ID_LS="dmki-gist-id",GIST_FILE="ki-pruefungstrainer.json";
+const lsGet=k=>{try{return localStorage.getItem(k)}catch(e){return null}},lsSet=(k,v)=>{try{v==null?localStorage.removeItem(k):localStorage.setItem(k,v)}catch(e){}};
+let gistInfo=null,gistTest=null,pushDelay=250;
+async function gh(token,path,opts={}){
+  const r=await fetch("https://api.github.com"+path,Object.assign({},opts,{headers:{"Accept":"application/vnd.github+json","Authorization":"Bearer "+token,"X-GitHub-Api-Version":"2022-11-28","Content-Type":"application/json"}}));
+  if(!r.ok){let m="";try{m=(await r.json()).message||""}catch(e){}const err=new Error(m||("HTTP "+r.status));err.status=r.status;throw err}
+  return r.status===204?null:r.json()}
+async function gistFind(token){
+  const user=await gh(token,"/user");
+  let id=lsGet(GIST_ID_LS);
+  if(id){try{const g=await gh(token,"/gists/"+id);if(g.files&&g.files[GIST_FILE]&&g.owner&&g.owner.login===user.login)return{id,url:g.html_url,login:user.login}}catch(e){if(e.status===401)throw e}}
+  for(let page=1;page<=5;page++){const list=await gh(token,"/gists?per_page=100&page="+page);
+    const hit=list.find(g=>g.files&&g.files[GIST_FILE]);if(hit){lsSet(GIST_ID_LS,hit.id);return{id:hit.id,url:hit.html_url,login:user.login}}
+    if(list.length<100)break}
+  const g=await gh(token,"/gists",{method:"POST",body:JSON.stringify({description:"KI-Prüfungstrainer – Lernstand",public:false,files:{[GIST_FILE]:{content:JSON.stringify({cards:{},quizzes:[],updated:0})}}})});
+  lsSet(GIST_ID_LS,g.id);return{id:g.id,url:g.html_url,login:user.login,created:true}}
+function gistAdapter(token,id){return{
+  async get(){const g=await gh(token,"/gists/"+id);const f=g.files&&g.files[GIST_FILE];if(!f)return{exists:false,data:()=>null};
+    let txt=f.content;if(f.truncated){const r=await fetch(f.raw_url);txt=await r.text()}
+    let d=null;try{d=JSON.parse(txt)}catch(e){}return{exists:!!d,data:()=>d}},
+  async set(obj){const body=JSON.stringify({files:{[GIST_FILE]:{content:JSON.stringify(obj)}}});
+    await gh(token,"/gists/"+id,{method:"PATCH",body,keepalive:body.length<60000})}}}
+function gistErrText(e){return e.status===401?"GitHub-Schlüssel ungültig oder abgelaufen":(e.status===403||e.status===404)?"Schlüssel ohne Gist-Recht oder Limit erreicht":/fetch|network|Failed/i.test(String(e.message))?"GitHub nicht erreichbar":"Fehler: "+e.message}
+async function initGist(){
+  cloudName="GitHub-Gist";pushDelay=2000;const token=lsGet(GIST_TOKEN_LS);
+  try{gistInfo=await gistFind(token);gistTest={ok:true,msg:"Verbunden mit GitHub als "+gistInfo.login}}
+  catch(e){gistInfo=null;gistTest={ok:false,msg:gistErrText(e)};acctUI();setSync("error",gistTest.msg+" – siehe Setup");return}
+  acctUI();remote=gistAdapter(token,gistInfo.id);await pullRemote()}
+
+function acctUI(){const gistOn=!!lsGet(GIST_TOKEN_LS);$("acct").hidden=false;
+  $("gistIn").hidden=!gistOn;$("acctSetupHint").hidden=gistOn;
+  if(gistOn){$("gistWho").textContent=gistInfo?"Synchronisiert über GitHub-Gist ("+gistInfo.login+")":"GitHub-Gist: "+((gistTest&&gistTest.msg)||"verbinde …");
+    $("gistLink").hidden=!gistInfo;if(gistInfo)$("gistLink").href=gistInfo.url}
+  if(!$("v-setup").hidden)renderSetup()}
+let syncing=false;
+async function initSync(){
+  if(syncing)return;syncing=true;setSync("local","Verbinde …");
+  try{
+    if(!window.claude||typeof window.claude.use!=="function"){if(lsGet(GIST_TOKEN_LS))await initGist();else{cloudName="GitHub-Gist";acctUI();setSync("local","Nur auf diesem Gerät – Synchronisierung im Setup einrichten")}return}
+    const [db,user]=await Promise.all([window.claude.use("db"),window.claude.use("user")]);
+    if(!db||!user){let st="";try{const pm=await window.claude.use("permissions");if(pm)st=await pm.state("db")}catch(e){}
+      setSync("local",st==="denied"?"Speicherfreigabe abgelehnt – tippen zum Ändern":"Nur auf diesem Gerät – in Claude angemeldet?");return}
+    const id=await user.id();if(!id){setSync("local","Nur auf diesem Gerät – nicht angemeldet");return}
+    remote=db.collection("data/users/"+id).doc("progress");
+    await pullRemote();
+  }catch(e){remote=null;setSync("error","Online-Speicher nicht erreichbar ("+((e&&(e.code||e.message))||"Fehler")+")")}
+  finally{syncing=false}
+}
+function flush(){persistLocal();if(remote&&(pushT||pending))pushRemote()}
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="hidden")flush();else if(remote)pullRemote().catch(()=>{})});
+window.addEventListener("pagehide",flush);
+$("sync").onclick=async()=>{if(syncReason.includes("abgelehnt")){try{const pm=await window.claude.use("permissions");if(pm)await pm.manage()}catch(e){}}
+  if(syncReason.includes("anmelden")){document.querySelector('nav button[data-view=stats]').click();$("acct").scrollIntoView({behavior:"smooth"});return}
+  if(syncReason.includes("Setup")||syncReason.includes("einrichten")){document.querySelector('nav button[data-view=setup]').click();return}
+  remote=null;initSync()};
+/* ---- Setup-Reiter ---- */
+function renderSetup(){
+  $("setupClaude").hidden=!(window.claude&&typeof window.claude.use==="function");
+  const row=(ok,txt)=>`<div><span class="dot ${ok===true?"l1":ok===false?"l3":"l0"}"></span>${esc(txt)}</div>`;
+  const gistOn=!!lsGet(GIST_TOKEN_LS);
+  $("gistForm").hidden=gistOn;$("gistConnected").hidden=!gistOn;
+  $("gistStatus").innerHTML=row(gistOn,gistOn?"GitHub-Schlüssel auf diesem Gerät eingetragen":"Noch kein GitHub-Schlüssel – Schritte 1 bis 3")+
+    (gistOn?row(gistTest?gistTest.ok:null,gistTest?gistTest.msg:"Verbinde …"):"")+
+    (gistInfo?`<div><span class="dot l1"></span>Lernstand in&nbsp;<a href="${esc(gistInfo.url)}" target="_blank" rel="noopener" style="color:var(--accent)">${GIST_FILE}</a></div>`:"")+
+    (gistOn&&lastSync?row(true,"Zuletzt abgeglichen um "+new Date(lastSync).toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"})):"");
+}
+document.querySelectorAll(".copy").forEach(b=>b.onclick=async()=>{const t=$(b.dataset.copy).textContent;const old=b.textContent;
+  try{await navigator.clipboard.writeText(t);b.textContent="Kopiert"}catch(e){const r=document.createRange();r.selectNodeContents($(b.dataset.copy));const sel=getSelection();sel.removeAllRanges();sel.addRange(r);b.textContent="Markiert – jetzt kopieren"}
+  setTimeout(()=>b.textContent=old,2000)});
+document.querySelectorAll(".toSetup").forEach(a=>a.onclick=e=>{e.preventDefault();document.querySelector('nav button[data-view=setup]').click()});
+$("gistConnect").onclick=async()=>{const t=$("gistTokenIn").value.trim();
+  if(!/^(ghp_|github_pat_|gho_)[A-Za-z0-9_]{20,}$/.test(t)){$("gistMsg").textContent="Das sieht nicht wie ein GitHub-Schlüssel aus. Er beginnt mit ghp_ und muss vollständig kopiert sein.";return}
+  $("gistMsg").textContent="Verbinde …";$("gistConnect").disabled=true;
+  let found;try{found=await gistFind(t)}catch(e){$("gistMsg").textContent=gistErrText(e)+".";$("gistConnect").disabled=false;return}
+  lsSet(GIST_TOKEN_LS,t);$("gistTokenIn").value="";$("gistConnect").disabled=false;remote=null;
+  await initSync();$("gistMsg").textContent=gistInfo?(found.created?"Verbunden. Ein neuer Gist wurde angelegt und dein bisheriger Lernstand gespeichert.":"Verbunden. Vorhandener Lernstand wurde gefunden und übernommen."):"";renderSetup()};
+$("gistOff").onclick=()=>{flush();lsSet(GIST_TOKEN_LS,null);lsSet(GIST_ID_LS,null);gistInfo=null;gistTest=null;remote=null;$("gistMsg").textContent="Getrennt. Der Gist bleibt in deinem GitHub-Konto erhalten.";initSync();renderSetup()};
+$("gistCopy").onclick=async()=>{const t=lsGet(GIST_TOKEN_LS)||"";try{await navigator.clipboard.writeText(t);$("gistMsg").textContent="Schlüssel kopiert. Wie ein Passwort behandeln."}catch(e){$("gistMsg").textContent="Kopieren nicht möglich – bitte den Schlüssel aus dem Passwortmanager verwenden."}};
+/* ---------- card stats ---------- */
+function norm(){if(!state||typeof state!=="object")state={};if(!Array.isArray(state.quizzes))state.quizzes=state.quizzes&&typeof state.quizzes==="object"?Object.values(state.quizzes):[];if(!state.cards||typeof state.cards!=="object")state.cards={};}
+norm();
+const cs=id=>state.cards[id]||{box:0,ok:0,ko:0,last:0};
+function mark(id,good){const s=Object.assign({},cs(id));
+  if(good){s.box=Math.min(5,s.box+1);s.ok++}else{s.box=0;s.ko++}s.last=Date.now();state.cards[id]=s;save()}
+const mastered=id=>cs(id).box>=3;
+
+/* ---------- learn view ---------- */
+let fTopic="all",fLevel=0,deck=[],pos=0,flipped=false;
+function filtered(t,l){return CARDS.filter(c=>(t==="all"||c.t===t)&&(!l||c.l==l))}
+function buildDeck(){
+  const list=filtered(fTopic,fLevel);
+  // due first: lower box, then least recently seen; light shuffle within same box
+  deck=shuffle(list).sort((a,b)=>cs(a.id).box-cs(b.id).box||cs(a.id).last-cs(b.id).last);
+  pos=0;showCard();
+}
+function renderTopics(){
+  const mk=(id,name)=>{const list=filtered(id,0);const m=list.filter(c=>mastered(c.id)).length;
+    return `<button class="topic" data-t="${id}" aria-pressed="${fTopic===id}"><span>${esc(name)}</span><small>${m}/${list.length}</small></button>`};
+  $("topics").innerHTML=mk("all","Alle Themen")+TOPICS.map(t=>mk(t.id,t.name)).join("");
+  $("topics").querySelectorAll(".topic").forEach(b=>b.onclick=()=>{fTopic=b.dataset.t;renderTopics();buildDeck()});
+}
+function renderLevels(){
+  $("levels").innerHTML=[0,1,2,3].map(l=>`<button class="chip" data-l="${l}" aria-pressed="${fLevel===l}"><span class="dot l${l}"></span>${l?LV[l]:"Alle Stufen"}</button>`).join("");
+  $("levels").querySelectorAll(".chip").forEach(b=>b.onclick=()=>{fLevel=+b.dataset.l;renderLevels();buildDeck()});
+}
+function pips(box){return `<span class="pips" title="Lernstand ${box} von 5">${[1,2,3,4,5].map(i=>`<b class="${i<=box?"on":""}"></b>`).join("")}</span>`}
+function srcHTML(t){return `<h3>Zum Weiterlesen und Anschauen</h3><ul>`+SRC[t].map(s=>`<li><a href="${esc(s.u)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${esc(s.t)}</a> <span class="k">(${esc(s.k)}, ${esc(s.m)})</span></li>`).join("")+`</ul>`}
+function showCard(){
+  flipped=false;$("card").classList.remove("flipped");$("bNo").disabled=$("bYes").disabled=true;
+  if(!deck.length){$("fq").textContent="Keine Karten für diese Auswahl.";$("ftopic").textContent="";$("flevel").textContent="";$("lcount").textContent="";$("lbox").innerHTML="";return}
+  const c=deck[pos];
+  $("ftopic").textContent=topicName(c.t);
+  $("flevel").innerHTML=$("blevel").innerHTML=`<span class="row" style="gap:6px"><span class="dot l${c.l}"></span>${LV[c.l]}</span>`;
+  $("fq").textContent=c.q;
+  setTimeout(()=>{$("ba").textContent=c.a;$("bs").innerHTML=srcHTML(c.t)},flipped?0:120);
+  const m=deck.filter(x=>mastered(x.id)).length;
+  $("lcount").textContent=`Karte ${pos+1} von ${deck.length}, davon ${m} sicher`;
+  $("lbox").innerHTML=pips(cs(c.id).box);
+}
+$("card").onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();$("card").click()}};
+$("card").onclick=()=>{if(!deck.length)return;flipped=!flipped;$("card").classList.toggle("flipped",flipped);if(flipped)$("bNo").disabled=$("bYes").disabled=false};
+function answer(good){if(!deck.length)return;mark(deck[pos].id,good);renderTopics();
+  pos++;if(pos>=deck.length){buildDeck()}else showCard()}
+$("bYes").onclick=()=>answer(true);$("bNo").onclick=()=>answer(false);
+document.addEventListener("keydown",e=>{if($("v-learn").hidden||e.target.tagName==="SELECT")return;
+  if(e.key===" "&&e.target===document.body){e.preventDefault();$("card").click()}
+  if(flipped&&e.key==="ArrowRight")answer(true);if(flipped&&e.key==="ArrowLeft")answer(false)});
+
+/* ---------- quiz ---------- */
+let quiz=null;
+function quizPool(){return filtered($("qt").value,+$("ql").value)}
+function updAvail(){const n=quizPool().length;$("qavail").textContent=`${n} passende Fragen`;$("qstart").disabled=!n}
+function startQuiz(pool,label){
+  const n=Math.min(+$("qn").value,pool.length);
+  const qs=shuffle(pool).slice(0,n).map(c=>({id:c.id,opts:shuffle([c.c,...c.w]),pick:null}));
+  quiz={qs,i:0,topic:label?.topic??$("qt").value,level:label?.level??+$("ql").value,retry:!!label};
+  $("qsetup").hidden=true;$("qend").hidden=true;$("qrun").hidden=false;showQ();
+}
+function showQ(){
+  const q=quiz.qs[quiz.i],c=CARDS.find(x=>x.id===q.id);
+  $("qprog").textContent=`Frage ${quiz.i+1} von ${quiz.qs.length}`;
+  $("qmeta").innerHTML=`${esc(topicName(c.t))} <span class="dot l${c.l}" style="margin-left:6px"></span> ${LV[c.l]}`;
+  $("qq").textContent=c.q;
+  $("qopts").innerHTML=q.opts.map((o,k)=>`<button class="opt" data-k="${k}">${esc(o)}</button>`).join("");
+  $("qopts").querySelectorAll(".opt").forEach(b=>b.onclick=()=>pick(+b.dataset.k));
+  $("qexp").hidden=true;$("qnext").hidden=true;
+}
+function pick(k){
+  const q=quiz.qs[quiz.i];if(q.pick!==null)return;const c=CARDS.find(x=>x.id===q.id);
+  q.pick=q.opts[k];const good=q.pick===c.c;q.good=good;
+  $("qopts").querySelectorAll(".opt").forEach((b,j)=>{b.disabled=true;if(q.opts[j]===c.c)b.classList.add("right");else if(j===k)b.classList.add("wrong")});
+  const s=Object.assign({},cs(c.id));if(good)s.ok++;else{s.ko++;s.box=Math.max(0,s.box-1)}s.last=Date.now();state.cards[c.id]=s;save();
+  $("qexp").innerHTML=`<div class="explain"><strong>${good?"Richtig.":"Leider falsch."}</strong> ${esc(c.a)}</div>`;$("qexp").hidden=false;
+  $("qnext").textContent=quiz.i<quiz.qs.length-1?"Nächste Frage":"Auswertung anzeigen";$("qnext").hidden=false;$("qnext").focus();
+}
+$("qnext").onclick=()=>{if(!quiz)return;if(quiz.i<quiz.qs.length-1){quiz.i++;showQ()}else endQuiz()};
+function endQuiz(){
+  const done=quiz;quiz=null;
+  const total=done.qs.length,right=done.qs.filter(q=>q.good).length,wrong=done.qs.filter(q=>!q.good).map(q=>q.id);
+  const pct=total?Math.round(right/total*100):0;
+  $("qrun").hidden=true;$("qend").hidden=false;
+  $("qend").innerHTML=`<h2>Ergebnis</h2><div class="row" style="gap:18px;align-items:baseline"><span class="score">${pct} %</span><span class="sub">${right} von ${total} richtig</span></div>
+   ${wrong.length?`<h3 style="margin:22px 0 8px">Zum Wiederholen</h3><ul>${wrong.map(id=>{const c=CARDS.find(x=>x.id===id);return `<li style="margin-bottom:8px"><strong>${esc(c.q)}</strong><br><span class="sub">${esc(c.c)}</span></li>`}).join("")}</ul>`:`<p>Alles richtig. Stark.</p>`}
+   <div class="row" style="margin-top:18px">${wrong.length?`<button class="btn primary" id="qretry">Falsche Fragen wiederholen</button>`:""}<button class="btn" id="qnew">Neues Quiz</button></div>`;
+  window.scrollTo({top:0,behavior:"smooth"});
+  if(wrong.length)$("qretry").onclick=()=>{const pool=CARDS.filter(c=>wrong.includes(c.id));$("qn").value="999";startQuiz(pool,{topic:done.topic,level:done.level})};
+  $("qnew").onclick=()=>{$("qend").hidden=true;$("qsetup").hidden=false;$("qn").value="10"};
+  try{norm();state.quizzes.push({d:Date.now(),t:done.topic,l:done.level,n:total,r:right,w:wrong,retry:done.retry});save()}catch(e){console.error(e)}
+  try{renderTopics()}catch(e){}
+}
+$("qquit").onclick=()=>{quiz=null;$("qrun").hidden=true;$("qsetup").hidden=false};
+$("qstart").onclick=()=>startQuiz(quizPool());
+$("qt").innerHTML=`<option value="all">Alle Themen</option>`+TOPICS.map(t=>`<option value="${t.id}">${esc(t.name)}</option>`).join("");
+$("qt").onchange=$("ql").onchange=updAvail;
+
+/* ---------- stats ---------- */
+function renderStats(){
+  const bar=(p,cl)=>`<div class="bar" title="${p} %"><i class="${cl}" style="width:${p}%"></i></div>`;
+  const rows=TOPICS.map(t=>{
+    const cells=[1,2,3].map(l=>{const list=filtered(t.id,l);const m=list.filter(c=>mastered(c.id)).length;const p=list.length?Math.round(m/list.length*100):0;
+      return `<td style="min-width:110px">${bar(p,"l"+l)}<span class="sub">${m}/${list.length}</span></td>`}).join("");
+    const qz=state.quizzes.filter(q=>q.t===t.id);const avg=qz.length?Math.round(qz.reduce((s,q)=>s+q.r/q.n,0)/qz.length*100)+" %":"–";
+    return `<tr><td>${esc(t.name)}</td>${cells}<td class="n">${avg}</td></tr>`}).join("");
+  $("stTable").innerHTML=`<tr><th>Thema</th><th><span class="dot l1"></span> Einfach</th><th><span class="dot l2"></span> Mittel</th><th><span class="dot l3"></span> Schwer</th><th>Quiz-Schnitt</th></tr>`+rows;
+  const h=state.quizzes.slice().reverse().slice(0,30);
+  $("stHist").innerHTML=h.length?`<table><tr><th>Datum</th><th>Thema</th><th>Stufe</th><th>Ergebnis</th></tr>`+h.map(q=>{
+    const d=new Date(q.d);return `<tr><td class="n">${d.toLocaleDateString("de-DE")} ${d.toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"})}</td><td>${esc(topicName(q.t))}${q.retry?" (Wiederholung)":""}</td><td>${q.l?LV[q.l]:"Alle"}</td><td class="n">${q.r}/${q.n} (${Math.round(q.r/q.n*100)} %)</td></tr>`}).join("")+`</table>`
+    :`<p class="empty">Noch keine Quiz-Ergebnisse. Starte ein Quiz, um deinen Stand zu messen.</p>`;
+}
+$("reset").onclick=()=>{if(confirm("Allen Lernstand und alle Quiz-Ergebnisse löschen?")){state={cards:{},quizzes:[],updated:0};save();renderAll()}};
+
+/* ---------- nav ---------- */
+document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>{
+  document.querySelectorAll("nav button").forEach(x=>x.setAttribute("aria-selected",x===b));
+  ["learn","quiz","stats","setup"].forEach(v=>$("v-"+v).hidden=v!==b.dataset.view);
+  if(b.dataset.view==="stats")renderStats();if(b.dataset.view==="setup")renderSetup();if(b.dataset.view==="learn")renderTopics();});
+$("expBtn").onclick=async()=>{const t=$("bk");t.hidden=false;t.value=btoa(unescape(encodeURIComponent(JSON.stringify(state))));t.select();
+  try{await navigator.clipboard.writeText(t.value);$("bkMsg").textContent="Code kopiert."}catch(e){$("bkMsg").textContent="Code markiert – bitte über „Kopieren“ übernehmen."}};
+$("impBtn").onclick=()=>{const t=$("bk");if(t.hidden||!t.value.trim()){t.hidden=false;t.value="";t.focus();$("bkMsg").textContent="Code einfügen und erneut auf „Sicherungscode einspielen“ tippen.";return}
+  try{const p=JSON.parse(decodeURIComponent(escape(atob(t.value.trim()))));if(!p.cards||!p.quizzes)throw 0;
+    state={cards:p.cards,quizzes:p.quizzes,updated:0};save();renderAll();$("bkMsg").textContent="Sicherung eingespielt."}catch(e){$("bkMsg").textContent="Der Code ist ungültig. Bitte vollständig einfügen."}};
+function renderAll(){renderTopics();renderLevels();buildDeck();updAvail();renderStats()}
+renderAll();initSync();
+
+</script>
+</body>
+</html>
