@@ -4,12 +4,15 @@ Lernkarten und Multiple-Choice-Quiz zur Vorbereitung auf die Prüfung „Digital
 
 ## Funktionen
 
-- **611 Lernkarten** in 10 Themenblöcken, je rund 61 Karten pro Thema
-- **Drei Schwierigkeitsstufen:** Einfach, Mittel, Schwer (je etwa 20 Karten pro Thema und Stufe)
+- **696 Lernkarten** in 16 Themenblöcken
+- **Ausrichtung am Prüfungskatalog:** Jede Karte ist einem der zehn Kenntnisbereiche K1–K10 zugeordnet (611 Karten) oder als sonstiges Thema markiert (85 Karten)
+- **Gewichtete Auswahl:** Quiz und Lernkarten ziehen Prüfungsthemen mit Gewicht 3, sonstige Themen mit Gewicht 2
+- **Prüfungssimulation:** 30 gewichtet gezogene Fragen mit Auswertung je Prüfungsbereich
+- **Drei Schwierigkeitsstufen:** Einfach, Mittel, Schwer
 - **Lernkarten mit Wiederholungslogik:** „Gewusst“ und „Nicht gewusst“ steuern, wann eine Karte wiederkommt; nach dreimal „Gewusst“ in Folge gilt sie als sicher
 - **Weiterführende Quellen** auf jeder Karte: Hochschulangebote (Elements of AI, KI-Campus, openHPI), Fachdokumentationen und Kurzvideos unter 4 Minuten
-- **Quiz:** Jede Karte ist zugleich eine Multiple-Choice-Frage mit vier Antworten; wählbar nach Thema, Stufe und Umfang (5, 10, 20, 50, 100 oder alle Fragen), mit Erklärung nach jeder Antwort und Wiederholung der falsch beantworteten Fragen
-- **Fortschritt:** Lernstand je Thema und Stufe, Quiz-Verlauf und Durchschnitt je Thema
+- **Quiz:** Jede Karte ist zugleich eine Multiple-Choice-Frage mit vier Antworten; wählbar nach Prüfungsbereich, Thema, Stufe und Umfang (5, 10, 20, 30, 50, 100 oder alle Fragen), mit Erklärung nach jeder Antwort, Auswertung je Prüfungsbereich und Wiederholung der falsch beantworteten Fragen
+- **Fortschritt:** Lernstand je Thema und Stufe, Stand und Trefferquote je Prüfungsbereich, Quiz-Verlauf
 - **Speicherung:** im Browser, über einen privaten GitHub-Gist zwischen Geräten oder im Claude-Konto (wenn über Claude geöffnet); zusätzlich Sicherungscode zum Übertragen
 - Optimiert für iPad, nutzbar auf Rechner und Smartphone, heller und dunkler Modus
 
@@ -27,6 +30,29 @@ Lernkarten und Multiple-Choice-Quiz zur Vorbereitung auf die Prüfung „Digital
 | Projekt- & Change-Management | Scrum, Kanban, Kotter, ADKAR, Stakeholder, kritischer Pfad |
 | Datenschutz & KI-Compliance | DSGVO-Grundsätze, AI-Act-Risikostufen, Betreiberpflichten |
 | Digitalisierungsvorhaben & Strategie | Make or Buy, PoC/Pilot, Reifegrad, Governance, Roadmap |
+| Geschäftsprozesse, Organisation & Reifegrad | Aufbau-/Ablauforganisation, Matrix, CMMI, ERP/DMS |
+| Wertstrom- & Ursachenanalyse | Ishikawa, 5-Why, Pareto, Wertstromkarte, PDCA |
+| No-Code-Plattformen | Trigger/Aktion, Konnektoren, Mapping, Plattformvergleich, Testkonzept, Doku |
+| Dokumentenverarbeitung & Chatbots | IDP-Pipeline, Konfidenz, E-Rechnung, Intent/Entity, Fallback, Voicebot |
+| Informationssicherheit & Compliance | Schutzziele, ISMS/ISO 27001, NIS-2, GoBD, TOM an Fallbeispielen |
+| Entscheidungsvorlagen & Qualitätssicherung | Pyramidenprinzip, belastbare Empfehlungen, QS-Plan, Stichproben |
+
+## Prüfungsbereiche und Gewichtung
+
+| Bereich | Inhalt |
+|---|---|
+| K1 | Digitale Geschäftsprozesse, Organisation & Reifegrad |
+| K2 | Prozessaufnahme & -modellierung (BPMN, Wertstrom, Ursachen) |
+| K3 | Kennzahlensysteme & Automatisierungspotenzial |
+| K4 | KI-Grundlagen, Grenzen & Abgrenzung |
+| K5 | No-Code-Plattformen & Workflows |
+| K6 | Große Sprachmodelle, Risiken & Ergebnisqualität |
+| K7 | Dokumentenverarbeitung & Chatbots |
+| K8 | Datenanalyse, Visualisierung & Empfehlungen |
+| K9 | Datenschutz, Informationssicherheit & Compliance |
+| K10 | Veränderungs- & Projektmanagement |
+
+Die Auswahl ist gewichtet ohne Zurücklegen (Schlüssel = Zufallszahl^(1/Gewicht)). Prüfungskarten haben Gewicht 3, sonstige Karten Gewicht 2. Bei allen Karten stammen dadurch rund 91 % der gezogenen Fragen aus Prüfungsthemen. Bei den Lernkarten bleibt die Wiederholungslogik vorrangig, die Gewichtung entscheidet bei gleichem Lernstand.
 
 ## Nutzung
 
@@ -55,11 +81,12 @@ Wird die App über Claude geöffnet, speichert sie im Claude-Konto. Zwischen bei
 Die Karten stehen im Array `CARDS` in `index.html`. Jede Karte hat folgende Felder:
 
 ```js
-{ id: "p12", t: "prompt", l: 2, q: "Frage", a: "Erklärung auf der Rückseite",
+{ id: "p12", t: "prompt", l: 2, k: "K6", q: "Frage", a: "Erklärung auf der Rückseite",
   c: "richtige Antwort", w: ["falsch 1", "falsch 2", "falsch 3"] }
 ```
 
-- `t`: Themen-ID (`prompt`, `llm`, `bpmn`, `kpi`, `n8n`, `assist`, `data`, `change`, `privacy`, `strategy`)
+- `t`: Themen-ID (`prompt`, `llm`, `bpmn`, `kpi`, `n8n`, `assist`, `data`, `change`, `privacy`, `strategy`, `orga`, `lean`, `nocode`, `idp`, `infosec`, `decide`)
+- `k`: Prüfungsbereich `K1` bis `K10`, oder `null` für sonstige Themen (bestimmt das Gewicht 3 bzw. 2)
 - `l`: Stufe (1 = einfach, 2 = mittel, 3 = schwer)
 - `id`: dauerhafte Kennung – nicht ändern, sonst geht der gespeicherte Lernstand dieser Karte verloren
 
@@ -67,6 +94,6 @@ Die Quellen je Thema stehen im Objekt `SRC`.
 
 ## Hinweise
 
-- Die Inhalte beruhen auf den Themen des eigenen Portfolios, nicht auf dem offiziellen Prüfungskatalog von TÜV Rheinland.
+- Die Zuordnung zu den Prüfungsbereichen folgt den im Prüfungskatalog genannten Kenntnisbereichen und Kompetenzen. Die Karten selbst sind eigene Formulierungen, keine offiziellen Prüfungsfragen.
 - Die Karten wurden auf Basis des Wissensstands Mitte 2026 erstellt und nicht einzeln mit Quellen abgeglichen. Fragen zu Recht und Datenschutz zielen auf Konzepte, nicht auf Gesetzeswortlaut; sie ersetzen keine Rechtsberatung.
 - Quellen-Links und Lesezeiten sind Richtwerte. Video-Links öffnen eine YouTube-Suche, gefiltert auf Videos unter 4 Minuten.
