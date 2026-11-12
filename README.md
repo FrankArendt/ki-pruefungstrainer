@@ -101,6 +101,7 @@ Wird die App über Claude geöffnet, speichert sie im Claude-Konto. Zwischen bei
 |---|---|
 | `index.html` | Aktuelle App (Version 2.0, 696 Karten) |
 | `README.md` | Diese Beschreibung |
+| `README.pdf` | Diese Beschreibung als PDF zum Ausdrucken |
 | `index_2.html`, `README_2.md` | Ältere Kompaktversion mit 61 Karten, nicht mehr gepflegt |
 
 ## Aufbau der Karten
