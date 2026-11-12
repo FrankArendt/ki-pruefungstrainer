@@ -2,12 +2,17 @@
 
 Lernkarten und Multiple-Choice-Quiz zur Vorbereitung auf die Prüfung „Digitalisierungsmanager für Prozessautomatisierung und Künstliche Intelligenz“.
 
+**App öffnen:** https://frankarendt.github.io/ki-pruefungstrainer/
+
+Stand: Version 2.0 vom 12.11.2026, ausgerichtet an den Kenntnisbereichen und Kompetenzen des Prüfungskatalogs.
+
 ## Funktionen
 
-- **696 Lernkarten** in 16 Themenblöcken
+- **696 Lernkarten** in 16 Themenblöcken (219 einfach, 255 mittel, 222 schwer)
 - **Ausrichtung am Prüfungskatalog:** Jede Karte ist einem der zehn Kenntnisbereiche K1–K10 zugeordnet (611 Karten) oder als sonstiges Thema markiert (85 Karten)
 - **Gewichtete Auswahl:** Quiz und Lernkarten ziehen Prüfungsthemen mit Gewicht 3, sonstige Themen mit Gewicht 2
-- **Prüfungssimulation:** 30 gewichtet gezogene Fragen mit Auswertung je Prüfungsbereich
+- **Filter nach Prüfungsbereich:** in Lernkarten und Quiz, voreingestellt auf „Nur Prüfungsthemen“
+- **Prüfungssimulation:** 30 gewichtet gezogene Fragen aus allen Karten, mit Auswertung je Prüfungsbereich
 - **Drei Schwierigkeitsstufen:** Einfach, Mittel, Schwer
 - **Lernkarten mit Wiederholungslogik:** „Gewusst“ und „Nicht gewusst“ steuern, wann eine Karte wiederkommt; nach dreimal „Gewusst“ in Folge gilt sie als sicher
 - **Weiterführende Quellen** auf jeder Karte: Hochschulangebote (Elements of AI, KI-Campus, openHPI), Fachdokumentationen und Kurzvideos unter 4 Minuten
@@ -39,20 +44,34 @@ Lernkarten und Multiple-Choice-Quiz zur Vorbereitung auf die Prüfung „Digital
 
 ## Prüfungsbereiche und Gewichtung
 
-| Bereich | Inhalt |
-|---|---|
-| K1 | Digitale Geschäftsprozesse, Organisation & Reifegrad |
-| K2 | Prozessaufnahme & -modellierung (BPMN, Wertstrom, Ursachen) |
-| K3 | Kennzahlensysteme & Automatisierungspotenzial |
-| K4 | KI-Grundlagen, Grenzen & Abgrenzung |
-| K5 | No-Code-Plattformen & Workflows |
-| K6 | Große Sprachmodelle, Risiken & Ergebnisqualität |
-| K7 | Dokumentenverarbeitung & Chatbots |
-| K8 | Datenanalyse, Visualisierung & Empfehlungen |
-| K9 | Datenschutz, Informationssicherheit & Compliance |
-| K10 | Veränderungs- & Projektmanagement |
+Die zehn Bereiche entsprechen den Kenntnisbereichen des Prüfungskatalogs.
+
+| Bereich | Inhalt | Karten | Gewicht |
+|---|---|---:|---:|
+| K1 | Digitale Geschäftsprozesse, Organisation & Reifegrad | 37 | 3 |
+| K2 | Prozessaufnahme & -modellierung (BPMN, Wertstrom, Ursachen) | 60 | 3 |
+| K3 | Kennzahlensysteme & Automatisierungspotenzial | 91 | 3 |
+| K4 | KI-Grundlagen, Grenzen & Abgrenzung | 27 | 3 |
+| K5 | No-Code-Plattformen & Workflows | 75 | 3 |
+| K6 | Große Sprachmodelle, Risiken & Ergebnisqualität | 64 | 3 |
+| K7 | Dokumentenverarbeitung & Chatbots | 35 | 3 |
+| K8 | Datenanalyse, Visualisierung & Empfehlungen | 66 | 3 |
+| K9 | Datenschutz, Informationssicherheit & Compliance | 76 | 3 |
+| K10 | Veränderungs- & Projektmanagement | 80 | 3 |
+| – | Sonstige Themen (v. a. Prompt-Techniken, produktspezifische Assistenten-Funktionen) | 85 | 2 |
 
 Die Auswahl ist gewichtet ohne Zurücklegen (Schlüssel = Zufallszahl^(1/Gewicht)). Prüfungskarten haben Gewicht 3, sonstige Karten Gewicht 2. Bei allen Karten stammen dadurch rund 91 % der gezogenen Fragen aus Prüfungsthemen. Bei den Lernkarten bleibt die Wiederholungslogik vorrangig, die Gewichtung entscheidet bei gleichem Lernstand.
+
+Die Kompetenzen aus dem Prüfungskatalog sind über die Bereiche abgedeckt, unter anderem:
+
+- Prozesse aufnehmen, modellieren und datenbasiert bewerten (K1–K3)
+- Automatisierungspotenziale einschätzen und Werkzeuge auswählen (K3, K5)
+- No-Code-Workflows umsetzen, testen und dokumentieren (K5)
+- LLMs, Dokumentenverarbeitung und Chatbots integrieren (K6, K7)
+- Ergebnisqualität systematisch absichern (K6)
+- Daten aufbereiten, visualisieren und belastbare Handlungsempfehlungen ableiten (K8)
+- Vorhaben als Projekte planen und Veränderung begleiten (K10)
+- DSGVO und EU-KI-Verordnung anwenden und TOM ableiten (K9)
 
 ## Nutzung
 
@@ -76,6 +95,14 @@ Der Schlüssel bleibt im Browser des Geräts und wird nur an api.github.com gese
 
 Wird die App über Claude geöffnet, speichert sie im Claude-Konto. Zwischen beiden Speichern lässt sich der Stand per Sicherungscode (Reiter **Fortschritt**) übertragen.
 
+## Dateien
+
+| Datei | Inhalt |
+|---|---|
+| `index.html` | Aktuelle App (Version 2.0, 696 Karten) |
+| `README.md` | Diese Beschreibung |
+| `index_2.html`, `README_2.md` | Ältere Kompaktversion mit 61 Karten, nicht mehr gepflegt |
+
 ## Aufbau der Karten
 
 Die Karten stehen im Array `CARDS` in `index.html`. Jede Karte hat folgende Felder:
@@ -97,3 +124,14 @@ Die Quellen je Thema stehen im Objekt `SRC`.
 - Die Zuordnung zu den Prüfungsbereichen folgt den im Prüfungskatalog genannten Kenntnisbereichen und Kompetenzen. Die Karten selbst sind eigene Formulierungen, keine offiziellen Prüfungsfragen.
 - Die Karten wurden auf Basis des Wissensstands Mitte 2026 erstellt und nicht einzeln mit Quellen abgeglichen. Fragen zu Recht und Datenschutz zielen auf Konzepte, nicht auf Gesetzeswortlaut; sie ersetzen keine Rechtsberatung.
 - Quellen-Links und Lesezeiten sind Richtwerte. Video-Links öffnen eine YouTube-Suche, gefiltert auf Videos unter 4 Minuten.
+
+## Änderungen
+
+**2.0 – 12.11.2026**
+- Alle Karten den Prüfungsbereichen K1–K10 zugeordnet, gewichtete Auswahl (Prüfungsthemen ×3, sonstige ×2)
+- 85 neue Karten in 6 neuen Themen für bisher fehlende Prüfungsinhalte: Organisation und Reifegrad, Wertstrom- und Ursachenanalyse, No-Code allgemein, Dokumentenverarbeitung und Chatbots, Informationssicherheit und Compliance, Entscheidungsvorlagen und Qualitätssicherung
+- Prüfungssimulation, Filter und Fortschritt je Prüfungsbereich
+- Bestehende Karten-IDs und gespeicherter Lernstand unverändert
+
+**1.0**
+- 611 Karten in 10 Themen, Lernkarten mit Wiederholungslogik, Quiz, Gist-Synchronisierung
