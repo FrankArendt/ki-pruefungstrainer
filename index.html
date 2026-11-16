@@ -428,38 +428,57 @@ const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(M
 const LS="dmki-progress-v1";
 let state={cards:{},quizzes:[],updated:0};
 try{const s=localStorage.getItem(LS);if(s){const p=JSON.parse(s);state={cards:p.cards||{},quizzes:p.quizzes||[],updated:p.updated||0}}}catch(e){}
-let remote=null,pushing=false,pending=false,pushT=null,syncReason="Verbinde …",lastSync=0,cloudName="Claude-Konto";
+let remote=null,pushing=false,pending=false,pushT=null,dirty=false,lastPush=0,lastPull=0,rlUntil=0,pushGap=0,syncReason="Verbinde …",lastSync=0,cloudName="Claude-Konto";
 function setSync(mode,reason){if(reason)syncReason=reason;const el=$("sync");el.className="sync "+mode;
   el.querySelector("span").textContent=mode==="cloud"?"Im "+cloudName+" gespeichert"+(lastSync?" ("+new Date(lastSync).toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"})+")":""):syncReason;
   const d=$("syncDetail");if(d)d.textContent=mode==="cloud"?"Synchronisierung aktiv. Dein Fortschritt liegt in deinem "+cloudName+" und zusätzlich auf diesem Gerät.":"Status: "+syncReason+". Lokale Sicherung auf diesem Gerät ist aktiv.";}
 function persistLocal(){try{localStorage.setItem(LS,JSON.stringify(state))}catch(e){}}
 function save(){norm();state.updated=Date.now();if(state.quizzes.length>300)state.quizzes=state.quizzes.slice(-300);persistLocal();
-  if(remote){clearTimeout(pushT);pushT=setTimeout(pushRemote,pushDelay)}}
-async function pushRemote(){if(!remote)return;clearTimeout(pushT);pushT=null;if(pushing){pending=true;return}pushing=true;
-  try{await remote.set(JSON.parse(JSON.stringify(state)));lastSync=Date.now();setSync("cloud")}
-  catch(e){setSync("error","Speichern online fehlgeschlagen ("+((e&&(e.code||e.message))||"Fehler")+")")}
-  pushing=false;if(pending){pending=false;pushRemote()}}
+  dirty=true;if(remote)schedulePush()}
+/* Pufferung: Änderungen sammeln, höchstens alle pushGap ms online speichern; bei GitHub-Limit bis zum Reset pausieren */
+const hhmm=t=>new Date(t).toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"});
+const rlActive=()=>Date.now()<rlUntil;
+function rlPausedMsg(){return "GitHub-Limit erreicht – Online-Speichern pausiert bis "+hhmm(rlUntil)+", lokal gesichert"}
+function schedulePush(){if(pushT||!remote)return;const now=Date.now();
+  const wait=Math.max(pushDelay,lastPush+pushGap-now,rlUntil-now+1000);
+  pushT=setTimeout(pushRemote,wait);if(rlActive())setSync("error",rlPausedMsg())}
+async function pushRemote(){clearTimeout(pushT);pushT=null;if(!remote)return;if(!dirty)return;if(pushing){pending=true;return}
+  if(rlActive()){schedulePush();return}
+  pushing=true;dirty=false;
+  try{await remote.set(JSON.parse(JSON.stringify(state)));lastPush=lastSync=Date.now();setSync("cloud")}
+  catch(e){dirty=true;lastPush=Date.now();
+    if(e&&e.rateLimit){rlUntil=e.resetAt;setSync("error",rlPausedMsg())}
+    else setSync("error","Speichern online fehlgeschlagen ("+((e&&(e.code||e.message))||"Fehler")+") – lokal gesichert, neuer Versuch folgt")}
+  pushing=false;if(pending){pending=false;if(dirty)schedulePush()}else if(dirty)schedulePush()}
 async function pullRemote(){if(!remote)return;
-  const snap=await remote.get();
+  if(rlActive()){setSync("error",rlPausedMsg());return}
+  lastPull=Date.now();
+  let snap;try{snap=await remote.get()}catch(e){if(e&&e.rateLimit){rlUntil=e.resetAt;setSync("error",rlPausedMsg());return}throw e}
   if(snap.exists){const r=snap.data()||{};
-    if((r.updated||0)>(state.updated||0)){state={cards:r.cards||{},quizzes:r.quizzes||[],updated:r.updated||0};norm();persistLocal();if(!quiz)renderAll()}
-    else if((state.updated||0)>(r.updated||0))await pushRemote();}
-  else if(state.updated)await pushRemote();
-  lastSync=Date.now();setSync("cloud");}
+    if((r.updated||0)>(state.updated||0)){state={cards:r.cards||{},quizzes:r.quizzes||[],updated:r.updated||0};dirty=false;norm();persistLocal();if(!quiz)renderAll()}
+    else if((state.updated||0)>(r.updated||0)){dirty=true;await pushRemote()}}
+  else if(state.updated){dirty=true;await pushRemote()}
+  if(!rlActive()){lastSync=Date.now();setSync("cloud")}}
 
 
 /* ---- GitHub Gist ---- */
-const GIST_TOKEN_LS="dmki-gist-token",GIST_ID_LS="dmki-gist-id",GIST_FILE="ki-pruefungstrainer.json";
+const GIST_TOKEN_LS="dmki-gist-token",GIST_ID_LS="dmki-gist-id",GIST_LOGIN_LS="dmki-gist-login",GIST_FILE="ki-pruefungstrainer.json";
 const lsGet=k=>{try{return localStorage.getItem(k)}catch(e){return null}},lsSet=(k,v)=>{try{v==null?localStorage.removeItem(k):localStorage.setItem(k,v)}catch(e){}};
 let gistInfo=null,gistTest=null,pushDelay=250;
 async function gh(token,path,opts={}){
+  if(rlActive()){const err=new Error("API rate limit exceeded");err.status=403;err.rateLimit=true;err.resetAt=rlUntil;throw err}
   const r=await fetch("https://api.github.com"+path,Object.assign({},opts,{headers:{"Accept":"application/vnd.github+json","Authorization":"Bearer "+token,"X-GitHub-Api-Version":"2022-11-28","Content-Type":"application/json"}}));
-  if(!r.ok){let m="";try{m=(await r.json()).message||""}catch(e){}const err=new Error(m||("HTTP "+r.status));err.status=r.status;throw err}
+  if(!r.ok){let m="";try{m=(await r.json()).message||""}catch(e){}const err=new Error(m||("HTTP "+r.status));err.status=r.status;
+    if((r.status===403||r.status===429)&&(/rate limit/i.test(m)||r.headers.get("x-ratelimit-remaining")==="0"||r.headers.get("retry-after"))){
+      const ra=+r.headers.get("retry-after"),rs=+r.headers.get("x-ratelimit-reset");
+      err.rateLimit=true;err.resetAt=ra?Date.now()+ra*1000:rs?rs*1000+5000:Date.now()+3600000;rlUntil=Math.max(rlUntil,err.resetAt)}
+    throw err}
   return r.status===204?null:r.json()}
 async function gistFind(token){
-  const user=await gh(token,"/user");
-  let id=lsGet(GIST_ID_LS);
-  if(id){try{const g=await gh(token,"/gists/"+id);if(g.files&&g.files[GIST_FILE]&&g.owner&&g.owner.login===user.login)return{id,url:g.html_url,login:user.login}}catch(e){if(e.status===401)throw e}}
+  let id=lsGet(GIST_ID_LS);const known=lsGet(GIST_LOGIN_LS);
+  if(id&&known){try{const g=await gh(token,"/gists/"+id);if(g.files&&g.files[GIST_FILE]&&g.owner&&g.owner.login===known)return{id,url:g.html_url,login:known}}catch(e){if(e.status===401||e.rateLimit)throw e}}
+  const user=await gh(token,"/user");lsSet(GIST_LOGIN_LS,user.login);
+  if(id){try{const g=await gh(token,"/gists/"+id);if(g.files&&g.files[GIST_FILE]&&g.owner&&g.owner.login===user.login)return{id,url:g.html_url,login:user.login}}catch(e){if(e.status===401||e.rateLimit)throw e}}
   for(let page=1;page<=5;page++){const list=await gh(token,"/gists?per_page=100&page="+page);
     const hit=list.find(g=>g.files&&g.files[GIST_FILE]);if(hit){lsSet(GIST_ID_LS,hit.id);return{id:hit.id,url:hit.html_url,login:user.login}}
     if(list.length<100)break}
@@ -471,11 +490,13 @@ function gistAdapter(token,id){return{
     let d=null;try{d=JSON.parse(txt)}catch(e){}return{exists:!!d,data:()=>d}},
   async set(obj){const body=JSON.stringify({files:{[GIST_FILE]:{content:JSON.stringify(obj)}}});
     await gh(token,"/gists/"+id,{method:"PATCH",body,keepalive:body.length<60000})}}}
-function gistErrText(e){return e.status===401?"GitHub-Schlüssel ungültig oder abgelaufen":(e.status===403||e.status===404)?"Schlüssel ohne Gist-Recht oder Limit erreicht":/fetch|network|Failed/i.test(String(e.message))?"GitHub nicht erreichbar":"Fehler: "+e.message}
+function gistErrText(e){return e.rateLimit?"GitHub-Limit erreicht – neuer Versuch ab "+hhmm(e.resetAt):e.status===401?"GitHub-Schlüssel ungültig oder abgelaufen":(e.status===403||e.status===404)?"Schlüssel ohne Gist-Recht oder Limit erreicht":/fetch|network|Failed/i.test(String(e.message))?"GitHub nicht erreichbar":"Fehler: "+e.message}
 async function initGist(){
-  cloudName="GitHub-Gist";pushDelay=2000;const token=lsGet(GIST_TOKEN_LS);
+  cloudName="GitHub-Gist";pushDelay=2000;pushGap=60000;const token=lsGet(GIST_TOKEN_LS);
   try{gistInfo=await gistFind(token);gistTest={ok:true,msg:"Verbunden mit GitHub als "+gistInfo.login}}
-  catch(e){gistInfo=null;gistTest={ok:false,msg:gistErrText(e)};acctUI();setSync("error",gistTest.msg+" – siehe Setup");return}
+  catch(e){gistInfo=null;gistTest={ok:false,msg:gistErrText(e)};acctUI();
+    if(e.rateLimit){setSync("error",rlPausedMsg());setTimeout(()=>{if(!remote)initSync()},Math.max(0,rlUntil-Date.now())+2000);return}
+    setSync("error",gistTest.msg+" – siehe Setup");return}
   acctUI();remote=gistAdapter(token,gistInfo.id);await pullRemote()}
 
 function acctUI(){const gistOn=!!lsGet(GIST_TOKEN_LS);$("acct").hidden=false;
@@ -497,8 +518,10 @@ async function initSync(){
   }catch(e){remote=null;setSync("error","Online-Speicher nicht erreichbar ("+((e&&(e.code||e.message))||"Fehler")+")")}
   finally{syncing=false}
 }
-function flush(){persistLocal();if(remote&&(pushT||pending))pushRemote()}
-document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="hidden")flush();else if(remote)pullRemote().catch(()=>{})});
+function flush(){persistLocal();if(remote&&dirty&&!rlActive())pushRemote()}
+const PULL_GAP=300000;
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="hidden")flush();
+  else if(remote&&!dirty&&!pushing&&Date.now()-lastPull>PULL_GAP)pullRemote().catch(()=>{})});
 window.addEventListener("pagehide",flush);
 $("sync").onclick=async()=>{if(syncReason.includes("abgelehnt")){try{const pm=await window.claude.use("permissions");if(pm)await pm.manage()}catch(e){}}
   if(syncReason.includes("anmelden")){document.querySelector('nav button[data-view=stats]').click();$("acct").scrollIntoView({behavior:"smooth"});return}
