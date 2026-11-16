@@ -464,10 +464,13 @@ async function pullRemote(){if(!remote)return;
 /* ---- GitHub Gist ---- */
 const GIST_TOKEN_LS="dmki-gist-token",GIST_ID_LS="dmki-gist-id",GIST_LOGIN_LS="dmki-gist-login",GIST_FILE="ki-pruefungstrainer.json";
 const lsGet=k=>{try{return localStorage.getItem(k)}catch(e){return null}},lsSet=(k,v)=>{try{v==null?localStorage.removeItem(k):localStorage.setItem(k,v)}catch(e){}};
-let gistInfo=null,gistTest=null,pushDelay=250;
+let gistInfo=null,gistTest=null,pushDelay=250,ghQuota=null;
+const APP_VERSION="2026-11-16 · Sync-Puffer v2";
 async function gh(token,path,opts={}){
   if(rlActive()){const err=new Error("API rate limit exceeded");err.status=403;err.rateLimit=true;err.resetAt=rlUntil;throw err}
-  const r=await fetch("https://api.github.com"+path,Object.assign({},opts,{headers:{"Accept":"application/vnd.github+json","Authorization":"Bearer "+token,"X-GitHub-Api-Version":"2022-11-28","Content-Type":"application/json"}}));
+  const r=await fetch("https://api.github.com"+path,Object.assign({},opts,{cache:"no-store",headers:{"Accept":"application/vnd.github+json","Authorization":"Bearer "+token,"X-GitHub-Api-Version":"2022-11-28","Content-Type":"application/json"}}));
+  {const rem=r.headers.get("x-ratelimit-remaining"),lim=r.headers.get("x-ratelimit-limit"),rs=r.headers.get("x-ratelimit-reset");
+    if(rem!=null&&lim!=null){ghQuota={rem:+rem,lim:+lim,reset:rs?+rs*1000:0};if(!$("v-setup").hidden)renderSetup()}}
   if(!r.ok){let m="";try{m=(await r.json()).message||""}catch(e){}const err=new Error(m||("HTTP "+r.status));err.status=r.status;
     if((r.status===403||r.status===429)&&(/rate limit/i.test(m)||r.headers.get("x-ratelimit-remaining")==="0"||r.headers.get("retry-after"))){
       const ra=+r.headers.get("retry-after"),rs=+r.headers.get("x-ratelimit-reset");
@@ -536,7 +539,10 @@ function renderSetup(){
   $("gistStatus").innerHTML=row(gistOn,gistOn?"GitHub-Schlüssel auf diesem Gerät eingetragen":"Noch kein GitHub-Schlüssel – Schritte 1 bis 3")+
     (gistOn?row(gistTest?gistTest.ok:null,gistTest?gistTest.msg:"Verbinde …"):"")+
     (gistInfo?`<div><span class="dot l1"></span>Lernstand in&nbsp;<a href="${esc(gistInfo.url)}" target="_blank" rel="noopener" style="color:var(--accent)">${GIST_FILE}</a></div>`:"")+
-    (gistOn&&lastSync?row(true,"Zuletzt abgeglichen um "+new Date(lastSync).toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"})):"");
+    (gistOn&&lastSync?row(true,"Zuletzt abgeglichen um "+new Date(lastSync).toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"})):"")+
+    (gistOn&&rlActive()?row(false,"GitHub-Limit erreicht – Online-Speichern pausiert bis "+hhmm(rlUntil)+". Lernstand ist lokal gesichert und wird danach automatisch hochgeladen."):"")+
+    (gistOn&&ghQuota?row(ghQuota.rem>500,"GitHub-Kontingent: "+ghQuota.rem+" von "+ghQuota.lim+" Anfragen frei"+(ghQuota.reset?" (Reset "+hhmm(ghQuota.reset)+")":"")+(ghQuota.rem<=500?" – andere Apps oder Geräte mit deinem GitHub-Konto verbrauchen das Kontingent":"")):"")+
+    row(null,"App-Version: "+APP_VERSION);
 }
 document.querySelectorAll(".copy").forEach(b=>b.onclick=async()=>{const t=$(b.dataset.copy).textContent;const old=b.textContent;
   try{await navigator.clipboard.writeText(t);b.textContent="Kopiert"}catch(e){const r=document.createRange();r.selectNodeContents($(b.dataset.copy));const sel=getSelection();sel.removeAllRanges();sel.addRange(r);b.textContent="Markiert – jetzt kopieren"}
